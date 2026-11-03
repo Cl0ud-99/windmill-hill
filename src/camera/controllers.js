@@ -131,7 +131,7 @@ export const SHOTS = [
   },
   {
     name: 'THE WHEEL', jp: '水車',
-    from: [10.5, 8.4, 9.0], to: [8.2, 7.6, 6.4],
+    from: [12.2, 9.0, 11.0], to: [9.4, 8.2, 8.2],
     lookFrom: [4.2, 9.0, 2.4], lookTo: [4.2, 9.4, 2.4],
     fov: 36, dur: 5.5, ease: easeInOut, drift: 0.12,
   },

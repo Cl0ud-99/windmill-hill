@@ -10,6 +10,7 @@ await page.setViewport({width:1400,height:800});
 const errs = [];
 page.on('pageerror', e => errs.push(String(e).slice(0,200)));
 page.on('console', m => { if (m.type()==='error') errs.push('console:'+m.text().slice(0,160)); });
+page.on('response', r => { if (r.status() >= 400) errs.push('HTTP ' + r.status() + ' ' + r.url()); });
 const resp = await page.goto(url, { waitUntil: 'networkidle2', timeout: 90000 });
 console.log('http', resp.status());
 let ready = false;

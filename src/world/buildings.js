@@ -250,7 +250,7 @@ export function buildWindmill() {
   }
   for (let i = 0; i < 18; i++) {
     const a = (i / 18) * Math.PI * 2;
-    const p = add(wheelGroup, box(0.05, 0.5, W), MAT.wood, Math.cos(a) * R, Math.sin(a) * R, 0);
+    const p = add(wheelGroup, box(0.05, 0.5, W), MAT.woodPlain, Math.cos(a) * R, Math.sin(a) * R, 0);
     p.rotation.z = a;
   }
   root.add(wheelGroup);
