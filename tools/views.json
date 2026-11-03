@@ -1,5 +1,5 @@
 [
-  { "name": "final-hero", "view": { "pos": [26, 6.0, 74], "look": [0, 11, 0], "fov": 34 } },
-  { "name": "final-house", "view": { "pos": [-3.5, 8.6, 8.5], "look": [-8.5, 8.6, 1.5], "fov": 45 } },
-  { "name": "final-gate", "view": { "pos": [16.5, 4.2, 31], "look": [12.6, 4.8, 26], "fov": 40 } }
+  { "name": "wall-a", "view": { "pos": [16.5, 4.2, 31], "look": [12.6, 4.8, 26], "fov": 40 } },
+  { "name": "wall-b", "view": { "pos": [2, 6.5, 32], "look": [-14, 6.0, 26], "fov": 45 } },
+  { "name": "hero-a", "view": { "pos": [26, 6.0, 74], "look": [0, 11, 0], "fov": 34 } }
 ]

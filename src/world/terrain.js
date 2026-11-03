@@ -142,7 +142,7 @@ void main() {
   // 河岸湿土
   float shore = smoothstep( 0.15, 0.85, splat.b ) * ( 1.0 - splat.g * 1.6 );
   shore = clamp( shore, 0.0, 1.0 );
-  col = mix( col, uDirtCol * 0.44, shore * 0.55 );
+  col = mix( col, uDirtCol * 0.34, shore * 0.50 );
 
   // 草间的细碎花点（远距离）
   float dist = length( vWorld - cameraPosition );
@@ -254,7 +254,7 @@ export function buildSplatMap(size = 2048) {
   g.save();
   g.filter = 'blur(6px)';
   g.strokeStyle = 'rgb(0,0,255)';
-  g.lineWidth = 1.9 * S;
+  g.lineWidth = 1.0 * S;
   g.lineCap = 'round'; g.lineJoin = 'round';
   g.beginPath();
   STREAM_PTS.forEach(([x, z], i) => i ? g.lineTo(X(x), Z(z)) : g.moveTo(X(x), Z(z)));
@@ -311,7 +311,7 @@ export function buildSplatMap(size = 2048) {
   g.save();
   g.filter = 'blur(5px)';
   g.strokeStyle = 'rgba(0,150,0,0.55)';
-  g.lineWidth = 1.9 * S;
+  g.lineWidth = 1.0 * S;
   g.beginPath();
   WALL_PTS.forEach(([x, z], i) => i ? g.lineTo(X(x), Z(z)) : g.moveTo(X(x), Z(z)));
   g.stroke();

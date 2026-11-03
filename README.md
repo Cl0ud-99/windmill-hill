@@ -5,12 +5,12 @@
 
 ▶ **在线试玩**：<https://cl0ud-99.github.io/windmill-hill/>
 
-![风车丘](docs/screenshots/p1.jpg)
+![风车丘](docs/screenshots/hero-a.jpg)
 
 | | |
 |---|---|
-| ![地面视角](docs/screenshots/p2.jpg) | ![电影镜头](docs/screenshots/p3.jpg) |
-| ![河谷](docs/screenshots/p4.jpg) | |
+| ![石墙](docs/screenshots/wall-b.jpg) | ![建筑近景](docs/screenshots/final-house.jpg) |
+| ![路口](docs/screenshots/final-gate.jpg) | ![河谷](docs/screenshots/p4.jpg) |
 
 > 全部为浏览器实时渲染截图（1600×900），无后期合成。
 

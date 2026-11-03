@@ -101,7 +101,11 @@ export function buildWall(sampleSplat) {
           const px = x + nx * off + (rnd() - 0.5) * 0.05;
           const pz = z + nz * off + (rnd() - 0.5) * 0.05;
           const py = y + 0.08 + t * 0.66 + (rnd() - 0.5) * 0.04;
-          const s = 0.115 + rnd() * 0.065;
+          // 三档尺寸：大石垫底、中石填缝、小石塞角
+          const tier = rnd();
+          const s = tier < 0.16 ? 0.205 + rnd() * 0.065
+                  : tier < 0.70 ? 0.130 + rnd() * 0.048
+                  : 0.076 + rnd() * 0.040;
           instances[Math.floor(rnd() * 4)].push({
             p: [px, py, pz],
             s: [s * (1.1 + rnd() * 0.6), s * (0.72 + rnd() * 0.4), s * (0.9 + rnd() * 0.5)],
