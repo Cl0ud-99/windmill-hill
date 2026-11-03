@@ -46,12 +46,26 @@ const PADS = [
   { x: 0.0, z: 0.0, r: 6.4, f: 9.5, y: 7.30 },
   { x: -7.8, z: 1.4, r: 5.4, f: 6.5, y: 6.96 },
   { x: 15.6, z: 11.6, r: 7.6, f: 9.0, y: 5.02 },
+  { x: 13.2, z: 3.4, r: 3.6, f: 4.0, y: null },   // 小风车
+  { x: 29.5, z: 37.5, r: 7.2, f: 7.5, y: null },  // 谷仓
+  { x: -20.0, z: 33.0, r: 5.2, f: 5.5, y: null }, // 石屋
+  { x: -15.0, z: 8.5, r: 3.4, f: 4.0, y: null },  // 敞棚
+  { x: 8.2, z: 13.8, r: 2.2, f: 3.0, y: null },   // 水井
 ];
+
+let padsResolved = false;
+function resolvePads() {
+  if (padsResolved) return;
+  padsResolved = true;
+  for (const p of PADS) {
+    if (p.y === null) p.y = rawHeight(p.x, p.z);
+  }
+}
 
 /* ============================================================
    地形高度函数
    ============================================================ */
-export function terrainHeight(x, z) {
+export function rawHeight(x, z) {
   let h = 0;
   h += 2.55 * Math.sin(x * 0.0126 + 0.9) * Math.cos(z * 0.0108 - 0.5);
   h += 1.25 * Math.sin(x * 0.0290 - 1.2) * Math.sin(z * 0.0261 + 0.7);
@@ -75,17 +89,19 @@ export function terrainHeight(x, z) {
   m = m * m * (3 - 2 * m);
   h = mix(h, bed, m * 0.985);
 
+  return h;
+}
 
-  // 建筑台基
+export function terrainHeight(x, z) {
+  resolvePads();
+  let h = rawHeight(x, z);
+
+  // 建筑台基：把坡地找平成平台，建筑才不会悬空
   for (const p of PADS) {
     const dd = Math.hypot(x - p.x, z - p.z);
     const w = 1.0 - smoothstep(p.r, p.r + p.f, dd);
     h = mix(h, p.y, w * w * (3 - 2 * w));
   }
-
-  // 水车下的水池
-  const bd = Math.hypot(x - 4.05, z - 2.9);
-  h -= (1.0 - smoothstep(1.1, 3.6, bd)) * 0.9;
 
   return h;
 }

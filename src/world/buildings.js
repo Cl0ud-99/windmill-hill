@@ -77,7 +77,7 @@ export function doorUnit(w = 1.35, h = 2.45, opts = {}) {
   const boards = 5;
   for (let i = 0; i < boards; i++) {
     const bh = (h - 0.06) / boards;
-    add(g, box(w * 0.94, bh * 0.92, 0.04), MAT.wood,
+    add(g, box(w * 0.94, bh * 0.92, 0.04), opts.boardMat || MAT.wood,
       0, 0.03 + i * bh + bh * 0.5, 0.115);
   }
   // 铁箍与门环

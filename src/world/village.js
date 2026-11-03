@@ -53,10 +53,9 @@ export function buildBarn(W = 9.0, D = 6.2, H = 4.2, RISE = 2.45) {
     // 博风板：沿坡面斜着贴
     for (const sx of [-1, 1]) {
       const len = Math.hypot(D / 2 + 0.34, RISE);
-      const b = add(g, box(0.07, 0.16, len), MAT.woodDark,
-        sx * (W / 2 + 0.32), H + RISE / 2, 0);
-      b.rotation.x = Math.atan2(RISE, D / 2 + 0.34);
-      b.rotation.y = sx * Math.PI / 2;
+      const b = add(g, box(0.09, 0.17, len), MAT.woodDark,
+        sx * (W / 2 + 0.31), H + RISE / 2 - 0.04, 0);
+      b.rotation.x = -Math.atan2(RISE, D / 2 + 0.34);
     }
   }
 
@@ -118,10 +117,9 @@ export function buildCottage(W = 6.2, D = 4.6, H = 3.0, RISE = 1.75) {
     add(g, box(W + 0.56, 0.14, 0.06), MAT.woodDark, 0, H - 0.05, s * (D / 2 + 0.26));
     for (const sx of [-1, 1]) {
       const len = Math.hypot(D / 2 + 0.3, RISE);
-      const b = add(g, box(0.06, 0.13, len), MAT.woodDark,
-        sx * (W / 2 + 0.26), H + RISE / 2, 0);
-      b.rotation.x = Math.atan2(RISE, D / 2 + 0.3);
-      b.rotation.y = sx * Math.PI / 2;
+      const b = add(g, box(0.08, 0.14, len), MAT.woodDark,
+        sx * (W / 2 + 0.25), H + RISE / 2 - 0.03, 0);
+      b.rotation.x = -Math.atan2(RISE, D / 2 + 0.3);
     }
   }
 
@@ -130,7 +128,7 @@ export function buildCottage(W = 6.2, D = 4.6, H = 3.0, RISE = 1.75) {
   add(g, box(0.64, 0.12, 0.64, 1.8), MAT.stone, W / 2 - 0.9, H + RISE * 0.55 + 0.98, -0.9);
 
   // 门与窗
-  const d = doorUnit(1.0, 2.0, { mat: MAT.woodDark });
+  const d = doorUnit(1.0, 2.0, { mat: MAT.woodDark, boardMat: MAT.woodDark });
   d.position.set(-0.6, 0, D / 2 - 0.02);
   g.add(d);
   const w1 = windowUnit(0.62, 0.78, { shutters: true, box: true });
@@ -251,14 +249,14 @@ export function buildVegetablePatch(rows = 4, len = 3.2) {
   const rnd = mulberry32(303);
   for (let r = 0; r < rows; r++) {
     const z = (r - (rows - 1) / 2) * 0.62;
-    add(g, box(len, 0.10, 0.42, 1.2), MAT.dirt, 0, 0.05, z);
+    add(g, box(len, 0.22, 0.46, 1.2), MAT.dirt, 0, -0.02, z);
     const n = Math.floor(len / 0.42);
     for (let i = 0; i < n; i++) {
       const x = -len / 2 + 0.2 + i * 0.42;
       const s = 0.11 + rnd() * 0.05;
       const cab = new THREE.Mesh(new THREE.SphereGeometry(s, 7, 5), MAT.cabbage);
       cab.scale.set(1, 0.78, 1);
-      cab.position.set(x + (rnd() - 0.5) * 0.05, 0.12 + s * 0.5, z);
+      cab.position.set(x + (rnd() - 0.5) * 0.05, 0.10 + s * 0.5, z);
       cab.castShadow = true;
       g.add(cab);
     }
@@ -337,19 +335,19 @@ export function placeVillage(scene) {
   };
 
   // 谷仓（墙外下坡，主镜头可见）
-  put(buildBarn(), 29.5, 37.5, -0.42, -0.45);
+  put(buildBarn(), 29.5, 37.5, -0.42, -0.10);
 
   // 石屋（墙外左侧）
-  put(buildCottage(), -20.0, 33.0, 0.52, -0.38);
+  put(buildCottage(), -20.0, 33.0, 0.52, -0.08);
 
   // 菜园（石屋前）
-  put(buildVegetablePatch(), -16.4, 30.2, 0.52, 0.02);
+  put(buildVegetablePatch(), -16.4, 30.2, 0.52, -0.06);
 
   // 敞棚
-  put(buildShed(), -15.0, 8.5, 0.25, -0.28);
+  put(buildShed(), -15.0, 8.5, 0.25, -0.10);
 
   // 水井（路边）
-  put(buildWell(), 8.2, 13.8, 0.3, -0.12);
+  put(buildWell(), 8.2, 13.8, 0.3, -0.05);
 
   // 干草堆
   put(buildHayRick(1.15, 2.2), 34.0, 33.5, 0.6, 0);
