@@ -118,6 +118,10 @@ export class ThirdPersonController {
     pushOut(0, 0, 4.05);        // 风车塔
     pushOut(-8.3, 1.5, 5.6);    // 主屋
     pushOut(13.2, 3.4, 2.5);    // 小风车
+    pushOut(29.5, 37.5, 5.2);   // 谷仓
+    pushOut(-20.0, 33.0, 4.0);  // 石屋
+    pushOut(-15.0, 8.5, 2.6);   // 敞棚
+    pushOut(8.2, 13.8, 1.3);    // 水井
     // 树木
     for (let i = 0; i < this.obstacles.length; i++) {
       const o = this.obstacles[i];

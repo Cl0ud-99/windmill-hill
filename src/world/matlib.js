@@ -87,6 +87,14 @@ export function initMatlib() {
     color: 0x3b3f3a, rim: 0.35, rimColor: 0xdfe8ee, spec: 0.55, specPower: 40,
     fresnel: 0.25, noise: 0.06,
   });
+  MAT.dirt = makeToon({
+    color: 0x5c4630, rim: 0.18, rimColor: 0xc9a878, spec: 0.04,
+    fresnel: 0.04, noise: 0.22, noiseScale: 2.4, saturation: 1.02,
+  });
+  MAT.cabbage = makeToon({
+    color: 0x6f9a45, rim: 0.42, rimColor: 0xd8f0a8, spec: 0.06, specPower: 12,
+    fresnel: 0.04, noise: 0.16, noiseScale: 3.0, wrap: 0.45, saturation: 1.06,
+  });
   MAT.slate = makeToon({
     map: TEX.roof, normalMap: TEX.nRoof, normalScale: 1.0,
     color: 0xffffff, tint: 0x8b98a6, mapMix: 1,

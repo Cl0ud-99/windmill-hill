@@ -13,6 +13,7 @@ import { buildWall } from './world/walls.js';
 import { buildAOMap, AO_REGION } from './world/ao.js';
 import { buildPollen, buildButterflies, buildBirds } from './world/particles.js';
 import { placeScenery, buildRiverStones } from './world/props.js';
+import { placeVillage } from './world/village.js';
 import { buildWater } from './world/water.js';
 import { RoamController, Cinematic, SHOTS } from './camera/controllers.js';
 import { ThirdPersonController } from './camera/thirdperson.js';
@@ -43,7 +44,7 @@ const roam = new RoamController(camera, canvas);
 const cine = new Cinematic(camera);
 let mode = 'intro';
 let post = null;
-let mill, house, smallMill, water, sky, terrain, grass, trees, wall, scenery;
+let mill, house, smallMill, water, sky, terrain, grass, trees, wall, scenery, village;
 let avatar = null;
 let third = null;
 let pollen = null, butterflies = null, birds = null;
@@ -108,6 +109,7 @@ async function init() {
   wall = buildWall(sampleSplat);
   scene.add(wall);
   scenery = placeScenery(scene);
+  village = placeVillage(scene);
   ui.progress(0.58, '正在种下树林…');
   await frame();
 
@@ -128,7 +130,7 @@ async function init() {
     { x: -30, z: 27, type: 1, scale: 1.05, rot: 0.9 },
     { x: -40, z: 36, type: 0, scale: 1.25, rot: 3.0 },
     { x: -22, z: 40, type: 0, scale: 1.15, rot: 1.4 },
-    { x: 27, z: 40, type: 0, scale: 1.2, rot: 4.6 },
+    { x: 37, z: 28, type: 0, scale: 1.2, rot: 4.6 },
     { x: 44, z: 40, type: 1, scale: 1.1, rot: 2.9 },
     { x: 56, z: 46, type: 0, scale: 1.3, rot: 0.4 },
     { x: -54, z: 54, type: 1, scale: 1.2, rot: 5.4 },
@@ -183,6 +185,9 @@ async function init() {
       { x: 7.42, z: 21.2, r: 1.7 }, { x: -13.2, z: 6.5, r: 1.3 },
       { x: 12.6, z: 27.2, r: 1.0 }, { x: 10.5, z: 27.0, r: 0.8 }, { x: 14.7, z: 27.0, r: 0.8 },
       { x: 13.2, z: 3.4, r: 3.0 },
+      { x: 29.5, z: 37.5, r: 6.0 }, { x: -20.0, z: 33.0, r: 4.5 },
+      { x: -15.0, z: 8.5, r: 3.0 }, { x: 8.2, z: 13.8, r: 1.6 },
+      { x: 34.0, z: 33.5, r: 1.8 }, { x: 32.2, z: 35.4, r: 1.5 },
       { x: 11.7, z: 13.4, r: 0.6 }, { x: 19.9, z: 8.3, r: 0.6 },
     ],
   });
@@ -414,7 +419,7 @@ window.__demo = {
   get water() { return water; }, get post() { return post; },
   get mill() { return mill; }, get house() { return house; }, get smallMill() { return smallMill; },
   get grass() { return grass; }, get trees() { return trees; },
-  get wall() { return wall; }, get scenery() { return scenery; },
+  get wall() { return wall; }, get scenery() { return scenery; }, get village() { return village; },
   get avatar() { return avatar; }, get third() { return third; },
   get pollen() { return pollen; }, get butterflies() { return butterflies; }, get birds() { return birds; },
   enterThird, enterRoam,

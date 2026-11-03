@@ -5,11 +5,11 @@
 
 ▶ **在线试玩**：<https://cl0ud-99.github.io/windmill-hill/>
 
-![风车丘](docs/screenshots/wm-hero.jpg)
+![风车丘](docs/screenshots/v-hero.jpg)
 
 | | |
 |---|---|
-| ![小风车](docs/screenshots/wm-side.jpg) | ![磨坊](docs/screenshots/r3-mill.jpg) |
+| ![谷仓](docs/screenshots/v-barn.jpg) | ![磨坊](docs/screenshots/r3-mill.jpg) |
 | ![建筑近景](docs/screenshots/final-house.jpg) | ![河谷](docs/screenshots/p4.jpg) |
 
 > 全部为浏览器实时渲染截图（1600×900），无后期合成。
@@ -52,6 +52,7 @@ npm run build    # 产出 dist/
 
 - **风车塔**：高 12.2 m、底径 7.1 m 的锥形石塔，红瓦穹顶、木质回廊、吊臂、四扇拱窗、石砌基座
 - **小风车**：高 9 m 的矮胖塔身，灰蓝石板顶、木质回廊、四片木格帆（实时旋转）——与主塔同源不同款
+- **村落**：木构谷仓（石基 + 干草阁楼 + 双开门）、石砌小屋（烟囱 + 菜园）、敞棚、石井、干草堆
 - **磨坊主屋**：8.4 × 5.9 m，山墙红瓦屋顶、烟囱、拱门、百叶窗、窗台花箱
 - **干砌石墙**：约 200 m，5000+ 块独立石块实例化堆砌，含门柱与半开木栅门
 - **河流**：平面反射水面（实时镜像相机 + 斜裁剪）、法线波纹、深度着色、岸边泡沫、水下焦散、1200 块河石、5200 丛芦苇
