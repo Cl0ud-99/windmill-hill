@@ -244,3 +244,75 @@ export function buildBirds(count = 6, seed = 77) {
   };
   return group;
 }
+
+/* ============================================================
+   烟囱炊烟
+   ============================================================ */
+const SMOKE_VERT = /* glsl */`
+precision highp float;
+uniform float uTime;
+uniform float uRise;
+uniform float uSpread;
+attribute float aSeed;
+varying float vAlpha;
+
+void main() {
+  float t = fract( uTime * 0.13 + aSeed );
+  vec3 p = position;
+  p.y += t * uRise;
+  p.x += sin( t * 4.2 + aSeed * 6.28 ) * uSpread * t + t * t * uSpread * 0.9;
+  p.z += cos( t * 3.1 + aSeed * 4.71 ) * uSpread * 0.8 * t;
+
+  vec4 mv = modelViewMatrix * vec4( p, 1.0 );
+  float dist = -mv.z;
+  vAlpha = smoothstep( 0.0, 0.10, t ) * ( 1.0 - smoothstep( 0.45, 1.0, t ) ) * 0.42;
+  gl_PointSize = ( 0.22 + t * 1.05 ) * 320.0 / max( dist, 1.0 );
+  gl_Position = projectionMatrix * mv;
+}
+`;
+
+const SMOKE_FRAG = /* glsl */`
+precision highp float;
+uniform vec3 uColor;
+varying float vAlpha;
+void main() {
+  vec2 c = gl_PointCoord - 0.5;
+  float d = length( c );
+  if ( d > 0.5 ) discard;
+  float a = smoothstep( 0.5, 0.05, d );
+  gl_FragColor = vec4( uColor, a * vAlpha );
+}
+`;
+
+export function buildSmoke(count = 22, rise = 3.4, spread = 0.5) {
+  const rnd = mulberry32(404);
+  const pos = new Float32Array(count * 3);
+  const seed = new Float32Array(count);
+  for (let i = 0; i < count; i++) {
+    pos[i * 3] = (rnd() - 0.5) * 0.16;
+    pos[i * 3 + 1] = 0;
+    pos[i * 3 + 2] = (rnd() - 0.5) * 0.16;
+    seed[i] = rnd();
+  }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  geo.setAttribute('aSeed', new THREE.BufferAttribute(seed, 1));
+
+  const mat = new THREE.ShaderMaterial({
+    vertexShader: SMOKE_VERT,
+    fragmentShader: SMOKE_FRAG,
+    uniforms: {
+      uTime: shared.uTime,
+      uRise: { value: rise },
+      uSpread: { value: spread },
+      uColor: { value: new THREE.Color(0xd8d6cf) },
+    },
+    transparent: true,
+    depthWrite: false,
+    blending: THREE.NormalBlending,
+  });
+  const pts = new THREE.Points(geo, mat);
+  pts.frustumCulled = false;
+  pts.renderOrder = 18;
+  return pts;
+}

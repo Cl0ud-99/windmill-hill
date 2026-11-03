@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { box, cyl, lathe, gableRoof, archGeo, mergeGeos, TILE } from '../core/geom.js';
 import { MAT } from './matlib.js';
 import { clamp } from '../core/noise.js';
+import { buildSmoke } from './particles.js';
 
 const V3 = (x, y, z) => new THREE.Vector3(x, y, z);
 
@@ -371,7 +372,7 @@ export function buildMillHouse() {
   add(g, box(W, H, D, 2.6), MAT.stone, 0, H / 2, 0);
   add(g, box(W + 0.26, 0.55, D + 0.26, 2.6), MAT.stone, 0, 0.27, 0);
 
-  const roofGeo = gableRoof(W, D, RISE, 0.34, 3.2);
+  const roofGeo = gableRoof(W, D, RISE, 0.34, 1.8);
   add(g, roofGeo, MAT.roof, 0, H, 0);
   // 封檐板
   for (const s of [-1, 1]) {
@@ -453,6 +454,10 @@ export function buildMillHouse() {
 
   add(g, box(0.62, 2.7, 0.62, 2.0), MAT.stone, 2.6, H + 0.95, -1.55);
   add(g, box(0.8, 0.16, 0.8, 2.0), MAT.stone, 2.6, H + 2.3, -1.55);
+  // 炊烟
+  const smoke = buildSmoke(22, 3.6, 0.5);
+  smoke.position.set(2.6, H + 2.5, -1.55);
+  g.add(smoke);
 
   const d = doorUnit(1.25, 2.35);
   d.position.set(1.5, 0, D / 2 - 0.02);

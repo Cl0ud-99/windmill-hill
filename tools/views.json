@@ -1,3 +1,4 @@
 [
-  { "name": "final-hero", "view": { "pos": [26, 6.0, 74], "look": [0, 11, 0], "fov": 34 } }
+  { "name": "z-hero", "view": { "pos": [26, 6.0, 74], "look": [0, 11, 0], "fov": 34 } },
+  { "name": "z-village", "view": { "pos": [10, 7.5, 56], "look": [24, 6.0, 36], "fov": 45 } }
 ]

@@ -330,7 +330,7 @@ export function roofTileTexture(size = 1024) {
       const x = k * cw + (r % 2 ? cw * 0.5 : 0);
       const y = r * rh;
       const tone = 0.82 + rnd() * 0.4;
-      const rr = clamp(150 * tone, 0, 255), gg = clamp(92 * tone, 0, 255), bb = clamp(76 * tone, 0, 255);
+      const rr = clamp(138 * tone, 0, 255), gg = clamp(96 * tone, 0, 255), bb = clamp(84 * tone, 0, 255);
       // 半圆筒瓦
       const grd = g.createLinearGradient(x, 0, x + cw, 0);
       grd.addColorStop(0, `rgb(${rr * 0.78},${gg * 0.78},${bb * 0.78})`);
@@ -339,21 +339,21 @@ export function roofTileTexture(size = 1024) {
       grd.addColorStop(1, `rgb(${rr * 0.74},${gg * 0.74},${bb * 0.74})`);
       g.fillStyle = grd;
       g.beginPath();
-      g.moveTo(x, y + rh * 0.92);
-      g.quadraticCurveTo(x + cw * 0.5, y + rh * 0.12, x + cw, y + rh * 0.92);
+      g.moveTo(x, y + rh * 0.98);
+      g.quadraticCurveTo(x + cw * 0.5, y + rh * 0.42, x + cw, y + rh * 0.98);
       g.lineTo(x + cw, y + rh);
       g.lineTo(x, y + rh);
       g.closePath(); g.fill();
 
       // 高度：筒瓦中间高、两侧低
       const hgr = hg.createLinearGradient(x, 0, x + cw, 0);
-      hgr.addColorStop(0, 'rgba(70,70,70,0.9)');
+      hgr.addColorStop(0, 'rgba(150,150,150,0.9)');
       hgr.addColorStop(0.5, 'rgba(255,255,255,0.95)');
-      hgr.addColorStop(1, 'rgba(70,70,70,0.9)');
+      hgr.addColorStop(1, 'rgba(150,150,150,0.9)');
       hg.fillStyle = hgr;
       hg.beginPath();
-      hg.moveTo(x, y + rh * 0.92);
-      hg.quadraticCurveTo(x + cw * 0.5, y + rh * 0.12, x + cw, y + rh * 0.92);
+      hg.moveTo(x, y + rh * 0.98);
+      hg.quadraticCurveTo(x + cw * 0.5, y + rh * 0.42, x + cw, y + rh * 0.98);
       hg.lineTo(x + cw, y + rh);
       hg.lineTo(x, y + rh);
       hg.closePath(); hg.fill();
