@@ -45,10 +45,10 @@ float fbm6( vec2 p ) {
 // 积云密度场
 float cloudDensity( vec2 p, float t ) {
   vec2 w = vec2( t * 0.0075, t * 0.0032 );
-  float base = fbm6( p * 0.52 + w );
-  float det  = fbm6( p * 1.75 - w * 2.1 + 3.7 );
-  float d = base * 0.86 + det * 0.44 - 0.18;
-  return smoothstep( 0.30, 0.54, d );
+  float base = fbm6( p * 0.34 + w );
+  float det  = fbm6( p * 1.25 - w * 2.1 + 3.7 );
+  float d = base * 0.94 + det * 0.50 - 0.20;
+  return smoothstep( 0.445, 0.575, d );
 }
 
 void main() {
@@ -75,17 +75,17 @@ void main() {
   float t = uTime;
 
   // 低层大积云
-  vec2 p = d.xz / max( d.y + 0.16, 0.055 ) * 3.4;
+  vec2 p = d.xz / max( d.y + 0.14, 0.05 ) * 2.6;
   float dens = cloudDensity( p, t );
   float dens2 = cloudDensity( p * 1.06 + vec2( 0.02 ), t * 1.05 );
 
   vec2 sunOff = L.xz * 0.55;
   float dSun = cloudDensity( p + sunOff, t );
-  float lit = clamp( 0.52 + ( dens - dSun ) * 2.6, 0.0, 1.0 );
+  float lit = clamp( 0.48 + ( dens - dSun ) * 3.4, 0.0, 1.0 );
 
-  vec3 cShade = vec3( 0.42, 0.52, 0.70 );
+  vec3 cShade = vec3( 0.36, 0.46, 0.66 );
   vec3 cMid   = vec3( 0.78, 0.83, 0.91 );
-  vec3 cLit   = vec3( 1.15, 1.13, 1.06 );
+  vec3 cLit   = vec3( 1.26, 1.22, 1.12 );
   vec3 cc = mix( cShade, cMid, smoothstep( 0.0, 0.55, lit ) );
   cc = mix( cc, cLit, smoothstep( 0.55, 1.0, lit ) );
 
@@ -129,7 +129,7 @@ export function buildSky() {
       uSunDir: shared.uSunDir,
       uSunColor: shared.uSunColor,
       uSkyColor: { value: new THREE.Color(0.115, 0.335, 0.66) },
-      uZenith: { value: new THREE.Color(0.045, 0.175, 0.50) },
+      uZenith: { value: new THREE.Color(0.038, 0.155, 0.47) },
       uHorizon: { value: new THREE.Color(0.40, 0.58, 0.71) },
       uTime: shared.uTime,
       uCloudCover: { value: 1.0 },

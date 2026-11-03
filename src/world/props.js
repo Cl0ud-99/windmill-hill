@@ -96,19 +96,29 @@ export function buildBench() {
 /* ---------------- 路灯 ---------------- */
 export function buildLamp() {
   const g = new THREE.Group();
-  add(g, cyl(0.055, 0.075, 2.5, 10, 1), MAT.metal, 0, 0, 0);
-  add(g, cyl(0.16, 0.2, 0.12, 10, 1), MAT.metal, 0, 0.02, 0);
-  // 灯箱
+  // 细铁杆 + 底座
+  add(g, cyl(0.042, 0.058, 2.55, 10, 1), MAT.metal, 0, 0, 0);
+  add(g, cyl(0.15, 0.19, 0.10, 12, 1), MAT.metal, 0, 0.02, 0);
+
+  // 灯箱：四根角柱 + 玻璃，而不是实心盒子
   const boxG = new THREE.Group();
-  add(boxG, box(0.3, 0.42, 0.3), MAT.metal, 0, 0.21, 0);
-  const glass = add(boxG, box(0.24, 0.32, 0.24), MAT.lampGlass, 0, 0.21, 0);
+  const gw = 0.15, gh = 0.30;
+  for (const sx of [-1, 1]) for (const sz of [-1, 1]) {
+    add(boxG, box(0.022, gh, 0.022), MAT.metal, sx * gw, gh / 2, sz * gw);
+  }
+  const glass = add(boxG, box(gw * 1.9, gh * 0.94, gw * 1.9), MAT.lampGlass, 0, gh / 2, 0);
   glass.castShadow = false;
-  const top = add(boxG, new THREE.ConeGeometry(0.26, 0.18, 4), MAT.metal, 0, 0.5, 0);
+  // 上下框
+  add(boxG, box(gw * 2.3, 0.03, gw * 2.3), MAT.metal, 0, 0.012, 0);
+  add(boxG, box(gw * 2.3, 0.035, gw * 2.3), MAT.metal, 0, gh, 0);
+  // 四坡顶
+  const top = add(boxG, new THREE.ConeGeometry(0.20, 0.15, 4), MAT.metal, 0, gh + 0.075, 0);
   top.rotation.y = Math.PI / 4;
-  boxG.position.y = 2.45;
+  // 顶饰
+  add(boxG, new THREE.SphereGeometry(0.026, 8, 6), MAT.metal, 0, gh + 0.17, 0);
+
+  boxG.position.y = 2.46;
   g.add(boxG);
-  // 挂钩
-  const arm = add(g, box(0.5, 0.05, 0.05), MAT.metal, 0.2, 2.4, 0);
   return g;
 }
 

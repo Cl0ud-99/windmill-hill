@@ -136,7 +136,7 @@ void main() {
   vec3 fogC = uFogColor + uSunColor * 0.25 * pow( max( dot( vd, L ), 0.0 ), 3.0 );
   col = mix( col, fogC, clamp( f, 0.0, 0.9 ) );
 
-  float alpha = mix( 0.52, 0.96, smoothstep( 0.0, 0.55, depth ) ) * ( uIsStream > 0.5 ? 0.92 : 1.0 );
+  float alpha = mix( 0.52, 0.96, smoothstep( 0.0, 0.55, depth ) ) * ( uIsStream > 0.5 ? 0.72 : 1.0 );
   // 水岸软过渡，避免硬边
   alpha *= smoothstep( 0.0, 0.14, vUv.x ) * smoothstep( 1.0, 0.86, vUv.x );
   alpha = max( alpha, foam * 0.9 );

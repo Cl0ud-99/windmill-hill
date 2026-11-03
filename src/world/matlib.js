@@ -47,7 +47,7 @@ export function initMatlib() {
     grime: [7.3, 11.0], roughVar: 0.45,
   });
   MAT.stone = makeToon({
-    map: TEX.stone, normalMap: TEX.nStone, normalScale: 1.0, color: 0xffffff, tint: 0xd6ccb2, mapMix: 1,
+    map: TEX.stone, normalMap: TEX.nStone, normalScale: 1.0, color: 0xffffff, tint: 0xcdbfa1, mapMix: 1,
     rim: 0.26, rimColor: 0xfff0d0, spec: 0.10, specPower: 14,
     fresnel: 0.13, noise: 0.10, noiseScale: 0.7,
     grime: [6.9, 9.6], roughVar: 0.7,
@@ -86,6 +86,10 @@ export function initMatlib() {
   MAT.metal = makeToon({
     color: 0x3b3f3a, rim: 0.35, rimColor: 0xdfe8ee, spec: 0.55, specPower: 40,
     fresnel: 0.25, noise: 0.06,
+  });
+  MAT.zinc = makeToon({
+    color: 0x6b7178, rim: 0.28, rimColor: 0xd8e2ec, spec: 0.32, specPower: 26,
+    fresnel: 0.30, noise: 0.10, noiseScale: 2.0, roughVar: 0.8,
   });
   MAT.terracotta = makeToon({
     color: 0xb5613c, rim: 0.28, rimColor: 0xffd3ae, spec: 0.12, specPower: 16,

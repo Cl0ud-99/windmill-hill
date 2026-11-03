@@ -73,7 +73,7 @@ export function buildGrass(sampleSplat, opts = {}) {
     rim: 0.10, rimColor: 0xeef8d0, spec: 0.04, specPower: 8,
     fresnel: 0.03, noise: 0.10, noiseScale: 1.4, wrap: 0.6, trans: 0.42,
     side: THREE.DoubleSide, saturation: 1.06,
-    windAmp: tall ? 0.14 : 0.075, windSpeed: 1.35, bendH: height, billow: 0.01,
+    windAmp: tall ? 0.17 : 0.095, windSpeed: 1.5, bendH: height, billow: 0.012,
   });
 
   const mesh = new THREE.InstancedMesh(geo, mat, count);
@@ -116,11 +116,91 @@ export function buildGrass(sampleSplat, opts = {}) {
     const t = fbm(x * 0.09, z * 0.09, 3);
     const dry = smoothstep(0.66, 0.88, fbm(x * 0.03 + 9, z * 0.03, 3));
     col.setHSL(
-      0.225 + t * 0.035 - dry * 0.015,
-      0.54 + rnd() * 0.16 - dry * 0.10,
-      0.155 + t * 0.10 + rnd() * 0.045
+      0.238 + t * 0.040 - dry * 0.020,
+      0.38 + rnd() * 0.18 - dry * 0.08,
+      0.135 + t * 0.085 + rnd() * 0.040
     );
     if (ao) col.multiplyScalar(0.30 + 0.70 * ao(x, z));
+    mesh.setColorAt(n, col);
+    n++;
+  }
+  mesh.count = n;
+  mesh.instanceMatrix.needsUpdate = true;
+  if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
+  return mesh;
+}
+
+
+/* ---------------- 穗草（细茎 + 穗头） ---------------- */
+export function buildSeedGrass(sampleSplat, count = 9000, seed = 91, ao = null) {
+  const rnd = mulberry32(seed);
+
+  // 单株：细茎 + 顶端穗
+  const parts = [];
+  const stem = new THREE.CylinderGeometry(0.004, 0.007, 0.62, 3, 1);
+  stem.translate(0, 0.31, 0);
+  paintGeo(stem, new THREE.Color(0.30, 0.36, 0.16));
+  parts.push(stem);
+  const head = new THREE.SphereGeometry(0.019, 5, 4);
+  head.scale(1, 3.4, 1);
+  head.translate(0, 0.66, 0);
+  paintGeo(head, new THREE.Color(0.46, 0.42, 0.22));
+  parts.push(head);
+  // 两片叶
+  for (const sgn of [-1, 1]) {
+    const leaf = new THREE.PlaneGeometry(0.035, 0.22);
+    leaf.rotateZ(sgn * 0.5);
+    leaf.rotateY(sgn * 1.2);
+    leaf.translate(sgn * 0.03, 0.14, 0);
+    paintGeo(leaf, new THREE.Color(0.26, 0.34, 0.14));
+    parts.push(leaf);
+  }
+  const geo = mergeGeos(parts);
+
+  const mat = makeToon({
+    color: 0xffffff, rim: 0.12, rimColor: 0xe6f2c0, spec: 0.05,
+    fresnel: 0.03, noise: 0.10, noiseScale: 1.6, wrap: 0.6, trans: 0.45,
+    side: THREE.DoubleSide, saturation: 1.02, vcolor: true,
+    windAmp: 0.17, windSpeed: 1.15, bendH: 0.62, billow: 0.02,
+  });
+
+  const mesh = new THREE.InstancedMesh(geo, mat, count);
+  mesh.castShadow = false;
+  mesh.receiveShadow = true;
+  mesh.frustumCulled = false;
+
+  const dummy = new THREE.Object3D();
+  const col = new THREE.Color();
+  let n = 0, guard = 0;
+  while (n < count && guard < count * 24) {
+    guard++;
+    const ang = rnd() * Math.PI * 2;
+    const r = Math.sqrt(rnd()) * 62;
+    const x = 6 + Math.cos(ang) * r;
+    const z = 30 + Math.sin(ang) * r;
+    const h = terrainHeight(x, z);
+    if (h < -0.3) continue;
+    const sp = sampleSplat(x, z);
+    if (sp[1] > 0.42 || sp[2] > 0.55) continue;
+    const nrm = terrainNormal(x, z, 1.2);
+    if (nrm.y < 0.66) continue;
+    if (Math.hypot(x, z) < 4.4) continue;
+    if (x > -13.5 && x < -3.4 && z > -2.2 && z < 5.4) continue;
+
+    // 成片分布：只在部分区域长穗草
+    const patch = fbm(x * 0.055 + 41, z * 0.055 - 17, 3);
+    if (patch < 0.56 && rnd() > 0.12) continue;
+
+    const s = 0.72 + rnd() * 0.62;
+    dummy.position.set(x, h - 0.02, z);
+    dummy.rotation.set((rnd() - 0.5) * 0.1, rnd() * Math.PI * 2, (rnd() - 0.5) * 0.1);
+    dummy.scale.set(s, s * (0.85 + rnd() * 0.5), s);
+    dummy.updateMatrix();
+    mesh.setMatrixAt(n, dummy.matrix);
+
+    const tint = 0.86 + rnd() * 0.3;
+    col.setRGB(tint, tint, tint);
+    if (ao) col.multiplyScalar(0.35 + 0.65 * ao(x, z));
     mesh.setColorAt(n, col);
     n++;
   }

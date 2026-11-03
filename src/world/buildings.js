@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { box, cyl, lathe, gableRoof, archGeo, TILE } from '../core/geom.js';
+import { box, cyl, lathe, gableRoof, archGeo, mergeGeos, TILE } from '../core/geom.js';
 import { MAT } from './matlib.js';
 import { clamp } from '../core/noise.js';
 
@@ -55,7 +55,7 @@ export function windowUnit(w = 0.85, h = 1.15, opts = {}) {
     for (const s of [-1, 1]) {
       const sh = add(g, box(w * 0.5, h * 0.94, 0.05), MAT.wood,
         s * (w * 0.5 + w * 0.28), h * 0.5, 0.14);
-      sh.rotation.y = s * 0.28;
+      sh.rotation.y = s * 0.12;
     }
   }
   if (opts.box) {
@@ -198,6 +198,27 @@ export function buildWindmill() {
   // ---- 门 ----
   placeOnTower(doorUnit(1.5, 2.5), 1.05, 0.0, -0.02);
 
+  // ---- 底部抹灰剥落，露出砌石 ----
+  {
+    let s2 = 2027;
+    const rnd2 = () => (s2 = (s2 * 16807) % 2147483647) / 2147483647;
+    const parts = [];
+    const m4 = new THREE.Matrix4();
+    for (let i = 0; i < 7; i++) {
+      const th = rnd2() * Math.PI * 2;
+      const y = 1.1 + rnd2() * 1.9;
+      const w = 0.45 + rnd2() * 0.55;
+      const h = 0.30 + rnd2() * 0.40;
+      const r = towerR(y) - 0.02;
+      const plate = box(w, h, 0.07, 1.1);
+      m4.makeRotationFromEuler(new THREE.Euler(0, th, (rnd2() - 0.5) * 0.3));
+      plate.applyMatrix4(m4);
+      plate.translate(Math.sin(th) * r, y, Math.cos(th) * r);
+      parts.push(plate);
+    }
+    add(root, mergeGeos(parts), MAT.stone);
+  }
+
   // ---- 阳台 ----
   const balcony = new THREE.Group();
   const arcStart = -0.72, arcLen = 1.44;
@@ -334,13 +355,57 @@ export function buildMillHouse() {
     }
   }
 
+  // ---- 护角石条：贴着两面墙包住转角（合并成单网格） ----
+  {
+    const quoinParts = [];
+    for (const sx of [-1, 1]) {
+      for (const sz of [-1, 1]) {
+        for (let i = 0; i < 8; i++) {
+          const y = 0.30 + i * 0.52;
+          const hh = i % 2 === 0 ? 0.34 : 0.26;
+          const a = box(0.10, hh, 0.46, 1.2);
+          a.translate(sx * (W / 2 + 0.02), y, sz * (D / 2 - 0.25));
+          quoinParts.push(a);
+          const b = box(0.46, hh, 0.10, 1.2);
+          b.translate(sx * (W / 2 - 0.25), y, sz * (D / 2 + 0.02));
+          quoinParts.push(b);
+        }
+      }
+    }
+    add(g, mergeGeos(quoinParts), MAT.stone);
+  }
+
+  // ---- 屋脊瓦 ----
+  {
+    const n = Math.round(W / 0.26);
+    const parts = [];
+    for (let i = 0; i < n; i++) {
+      const x = -W / 2 + (i + 0.5) * (W / n);
+      const tile = new THREE.CylinderGeometry(0.11, 0.11, (W / n) * 0.92, 8, 1, false, 0, Math.PI);
+      tile.rotateZ(Math.PI / 2);
+      tile.translate(x, H + RISE + 0.03, 0);
+      parts.push(tile);
+    }
+    add(g, mergeGeos(parts), MAT.roof);
+  }
+
+  // ---- 檐沟与落水管 ----
+  for (const sz of [-1, 1]) {
+    const gut = new THREE.CylinderGeometry(0.045, 0.045, W + 0.4, 8, 1, true, 0, Math.PI);
+    gut.rotateZ(Math.PI / 2);
+    const m = add(g, gut, MAT.zinc, 0, H - 0.05, sz * (D / 2 + 0.20));
+    m.rotation.z = Math.PI;
+  }
+  add(g, cyl(0.035, 0.035, H - 0.3, 8, 1), MAT.zinc, W / 2 - 0.10, 0.1, D / 2 + 0.24);
+
   add(g, box(0.62, 2.7, 0.62, 2.0), MAT.stone, 2.6, H + 0.95, -1.55);
   add(g, box(0.8, 0.16, 0.8, 2.0), MAT.stone, 2.6, H + 2.3, -1.55);
 
   const d = doorUnit(1.25, 2.35);
   d.position.set(1.5, 0, D / 2 - 0.02);
   g.add(d);
-  const porch = add(g, box(2.4, 0.12, 1.05, 1.6), MAT.roof, 1.5, 2.72, D / 2 + 0.38);
+  add(g, box(1.9, 0.16, 0.16), MAT.woodDark, 1.5, 2.52, D / 2 + 0.10);
+  const porch = add(g, box(2.4, 0.14, 1.05, 1.6), MAT.wood, 1.5, 2.72, D / 2 + 0.38);
   porch.rotation.x = -0.16;
   for (const s of [-1, 1]) add(g, box(0.1, 2.65, 0.1), MAT.woodDark, 1.5 + s * 1.0, 1.33, D / 2 + 0.75);
 

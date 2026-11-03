@@ -7,7 +7,7 @@ import { initMatlib } from './world/matlib.js';
 import { buildWindmill, buildMillHouse } from './world/buildings.js';
 import { buildPost } from './post/post.js';
 import {
-  buildGrass, buildTrees, buildWildflowers, buildHydrangeas, makeSplatSampler, buildReeds,
+  buildGrass, buildTrees, buildWildflowers, buildHydrangeas, makeSplatSampler, buildReeds, buildSeedGrass,
 } from './world/vegetation.js';
 import { buildWall } from './world/walls.js';
 import { buildAOMap, AO_REGION } from './world/ao.js';
@@ -195,7 +195,8 @@ async function init() {
   scene.add(buildGrass(sampleSplat, {
     count: 7000, radius: 18, cx: 40, cz: 62, height: 0.85, blades: 6, seed: 33, tall: true, ao: ao.sample,
   }));
-  scene.add(buildWildflowers(sampleSplat, 11000, 21, ao.sample));
+  scene.add(buildWildflowers(sampleSplat, 7500, 21, ao.sample));
+  scene.add(buildSeedGrass(sampleSplat, 5000, 91, ao.sample));
   ui.progress(0.86, '正在开花…');
   await frame();
 
