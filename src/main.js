@@ -27,7 +27,7 @@ const audio = new Ambience();
 const renderer = new THREE.WebGLRenderer({
   canvas, antialias: true, powerPreference: 'high-performance', stencil: false,
 });
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.6));
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.35));
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.NoToneMapping;

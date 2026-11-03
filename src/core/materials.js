@@ -283,9 +283,8 @@ void main() {
   vec3 vd = normalize( vWorld - cameraPosition );
   float dist = length( vWorld - cameraPosition );
   // 高度雾：越贴近地面越浓，形成谷地薄霭
-  float hLow = exp( -max( vWorld.y - 1.5, 0.0 ) * 0.055 );
-  float hMid = exp( -max( vWorld.y - 1.5, 0.0 ) * 0.012 );
-  float density = 0.42 + 0.42 * hLow + 0.16 * hMid;
+  float hLow = exp( -max( vWorld.y - 1.5, 0.0 ) * 0.045 );
+  float density = 0.55 + 0.45 * hLow;
   float f = 1.0 - exp( -dist * uFogDensity * density );
   // 朝向太阳时雾里带暖光
   float sunAmt = pow( max( dot( vd, L ), 0.0 ), 3.0 );

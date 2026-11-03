@@ -8,7 +8,7 @@ const page = await browser.newPage();
 await page.setViewport({width:1600,height:900});
 await page.goto('http://localhost:5173/', {waitUntil:'networkidle2'});
 await page.waitForFunction('window.__ready === true', {timeout:180000});
-await page.evaluate(() => { window.__demo.cine.play(1,1); });
+await page.evaluate(() => window.__demo.setView([26,6,74],[0,11,0],34));
 await new Promise(r=>setTimeout(r,1500));
 const stats = await page.evaluate(async () => {
   const times = [];

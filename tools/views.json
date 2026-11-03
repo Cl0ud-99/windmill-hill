@@ -1,4 +1,5 @@
 [
-  { "name": "gate2", "view": { "pos": [16.5, 4.2, 31], "look": [12.6, 4.8, 26], "fov": 40 } },
-  { "name": "hero2", "view": { "pos": [26, 6.0, 74], "look": [0, 11, 0], "fov": 34 } }
+  { "name": "final-hero", "view": { "pos": [26, 6.0, 74], "look": [0, 11, 0], "fov": 34 } },
+  { "name": "final-house", "view": { "pos": [-3.5, 8.6, 8.5], "look": [-8.5, 8.6, 1.5], "fov": 45 } },
+  { "name": "final-gate", "view": { "pos": [16.5, 4.2, 31], "look": [12.6, 4.8, 26], "fov": 40 } }
 ]

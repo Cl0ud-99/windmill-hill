@@ -40,6 +40,9 @@ float fbm2( vec2 p ) {
   for ( int i = 0; i < 4; i ++ ) { s += a * vnoise( p ); p *= 2.03; a *= 0.5; }
   return s;
 }
+float fbm2l( vec2 p ) {
+  return vnoise( p ) * 0.66 + vnoise( p * 2.07 + 5.3 ) * 0.34;
+}
 `;
 
 const TERRAIN_VERT = /* glsl */`
@@ -121,7 +124,7 @@ void main() {
   vec3 dirt = texture2D( uDirt, vWorld.xz * 0.85 ).rgb;
   dirt = mix( uDirtCol, dirt, 0.55 );
   // 碎石颗粒
-  float gravel = smoothstep( 0.62, 0.92, fbm2( vWorld.xz * 7.0 ) );
+  float gravel = smoothstep( 0.66, 0.94, vnoise( vWorld.xz * 7.0 ) );
   dirt = mix( dirt, dirt * 1.35 + 0.03, gravel * 0.5 );
   // 车辙：沿路方向的两道浅槽
   dirt *= 0.88 + 0.12 * smoothstep( 0.2, 0.7, abs( sin( vWorld.z * 1.6 ) ) );
@@ -153,8 +156,8 @@ void main() {
   float caustic = 0.0;
   if ( depth > 0.0 ) {
     vec2 cuv = vWorld.xz * 1.1;
-    float c1 = fbm2( cuv + vec2( uTime * 0.13, uTime * 0.07 ) );
-    float c2 = fbm2( cuv * 1.7 - vec2( uTime * 0.09, uTime * 0.16 ) );
+    float c1 = fbm2l( cuv + vec2( uTime * 0.13, uTime * 0.07 ) );
+    float c2 = fbm2l( cuv * 1.7 - vec2( uTime * 0.09, uTime * 0.16 ) );
     caustic = pow( abs( c1 - c2 ), 1.6 ) * 6.0;
     caustic *= smoothstep( 0.0, 0.35, depth ) * ( 1.0 - smoothstep( 1.2, 3.0, depth ) );
   }
@@ -165,7 +168,7 @@ void main() {
   float shadow = getShadowMask();
   float ndl = dot( N, L );
   float diff = clamp( ( ndl + 0.15 ) / 1.15, 0.0, 1.0 );
-  float cs = fbm2( vWorld.xz * 0.0075 + vec2( uTime * 0.0035, uTime * 0.0018 ) );
+  float cs = fbm2l( vWorld.xz * 0.0075 + vec2( uTime * 0.0035, uTime * 0.0018 ) );
   cs = smoothstep( 0.44, 0.60, cs );
   float term = diff * mix( 0.45, 1.0, shadow ) * mix( 0.62, 1.0, cs );
   float lit = smoothstep( 0.06, 0.62, term );
@@ -193,9 +196,8 @@ void main() {
 
   // 大气
   vec3 vd = normalize( vWorld - cameraPosition );
-  float hLow = exp( -max( vWorld.y - 1.5, 0.0 ) * 0.055 );
-  float hMid = exp( -max( vWorld.y - 1.5, 0.0 ) * 0.012 );
-  float density = 0.42 + 0.42 * hLow + 0.16 * hMid;
+  float hLow = exp( -max( vWorld.y - 1.5, 0.0 ) * 0.045 );
+  float density = 0.55 + 0.45 * hLow;
   float f = 1.0 - exp( -dist * uFogDensity * density );
   float sunAmt = pow( max( dot( vd, L ), 0.0 ), 3.0 );
   vec3 fogC = uFogColor + uSunColor * ( 0.20 + 0.30 * hLow ) * sunAmt;

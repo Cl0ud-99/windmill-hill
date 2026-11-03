@@ -176,7 +176,7 @@ export function buildPost(renderer, scene, camera) {
     colorSpace: THREE.LinearSRGBColorSpace,
     depthBuffer: true,
     stencilBuffer: false,
-    samples: 4,
+    samples: 2,
   });
   const composer = new EffectComposer(renderer, rt);
   composer.setPixelRatio(renderer.getPixelRatio());
