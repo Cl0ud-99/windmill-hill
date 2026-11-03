@@ -374,8 +374,8 @@ function tick() {
     if (wantDof) {
       const f = camera.position.distanceTo(cine._l);
       post.bokeh.uniforms.focus.value = f;
-      post.bokeh.uniforms.aperture.value = 0.0032;
-      post.bokeh.uniforms.maxblur.value = 0.0075;
+      post.bokeh.uniforms.aperture.value = 0.0026;
+      post.bokeh.uniforms.maxblur.value = 0.0052;
     }
     post.grade.uniforms.uTime.value = t;
     post.grade.uniforms.uResolution.value.set(window.innerWidth, window.innerHeight);
