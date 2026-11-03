@@ -4,7 +4,7 @@ import { buildSky } from './world/sky.js';
 import { buildTerrain, buildSplatMap, buildFarHills, buildHeightTexture } from './world/terrain.js';
 import { riverCenterZ, riverHalfWidth, terrainHeight, WATER_Y } from './world/layout.js';
 import { initMatlib } from './world/matlib.js';
-import { buildWindmill, buildMillHouse } from './world/buildings.js';
+import { buildWindmill, buildMillHouse, buildSmallWindmill } from './world/buildings.js';
 import { buildPost } from './post/post.js';
 import {
   buildGrass, buildTrees, buildWildflowers, buildHydrangeas, makeSplatSampler, buildReeds, buildSeedGrass,
@@ -43,7 +43,7 @@ const roam = new RoamController(camera, canvas);
 const cine = new Cinematic(camera);
 let mode = 'intro';
 let post = null;
-let mill, house, water, sky, terrain, grass, trees, wall, scenery;
+let mill, house, smallMill, water, sky, terrain, grass, trees, wall, scenery;
 let avatar = null;
 let third = null;
 let pollen = null, butterflies = null, birds = null;
@@ -96,6 +96,10 @@ async function init() {
   scene.add(mill.root);
   house = buildMillHouse();
   scene.add(house.root);
+  smallMill = buildSmallWindmill();
+  smallMill.root.position.set(13.2, terrainHeight(13.2, 3.4), 3.4);
+  smallMill.root.rotation.y = 0.42;
+  scene.add(smallMill.root);
   ui.progress(0.46, '正在砌石墙…');
   await frame();
 
@@ -178,6 +182,7 @@ async function init() {
       { x: 2.9, z: 5.3, r: 0.7 }, { x: 3.7, z: 4.7, r: 0.7 },
       { x: 7.42, z: 21.2, r: 1.7 }, { x: -13.2, z: 6.5, r: 1.3 },
       { x: 12.6, z: 27.2, r: 1.0 }, { x: 10.5, z: 27.0, r: 0.8 }, { x: 14.7, z: 27.0, r: 0.8 },
+      { x: 13.2, z: 3.4, r: 3.0 },
       { x: 11.7, z: 13.4, r: 0.6 }, { x: 19.9, z: 8.3, r: 0.6 },
     ],
   });
@@ -230,7 +235,7 @@ async function init() {
 
   const heightTex = buildHeightTexture(512);
   water = buildWater(heightTex);
-  scene.add(water.river, water.stream);
+  scene.add(water.river);
 
   // 人物
   avatar = buildAvatar();
@@ -353,7 +358,7 @@ function tick() {
   else if (mode === 'roam') roam.update(dt);
   else if (mode === 'third') third.update(dt);
 
-  if (mill) mill.wheel.rotation.z -= dt * 0.42;
+  if (smallMill) smallMill.sails.rotation.z -= dt * 0.22;
   if (sky) sky.mesh.position.copy(camera.position);
   if (pollen) pollen.material.uniforms.uCam.value.copy(camera.position);
   if (butterflies) butterflies.userData.update(dt);
@@ -407,7 +412,7 @@ window.__demo = {
   THREE, scene, camera, renderer, cine, ui, roam, SHOTS,
   get terrain() { return terrain; }, get sky() { return sky; },
   get water() { return water; }, get post() { return post; },
-  get mill() { return mill; }, get house() { return house; },
+  get mill() { return mill; }, get house() { return house; }, get smallMill() { return smallMill; },
   get grass() { return grass; }, get trees() { return trees; },
   get wall() { return wall; }, get scenery() { return scenery; },
   get avatar() { return avatar; }, get third() { return third; },

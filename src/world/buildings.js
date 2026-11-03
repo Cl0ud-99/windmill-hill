@@ -260,49 +260,102 @@ export function buildWindmill() {
   add(root, cyl(0.012, 0.012, 1.5, 4, 1), MAT.woodDark, 0.35, 10.6, 4.95);
   add(root, new THREE.TorusGeometry(0.11, 0.025, 5, 10), MAT.metal, 0.35, 9.85, 4.95);
 
-  // ---- 水车 ----
-  const wheelGroup = new THREE.Group();
-  wheelGroup.position.set(4.05, 1.58, 2.55);
-  wheelGroup.rotation.y = Math.PI / 2;
-  const R = 2.28, W = 1.15;
-  for (const z of [-W / 2, W / 2]) {
-    const t = new THREE.Mesh(new THREE.TorusGeometry(R, 0.085, 6, 48), MAT.woodDark);
-    t.position.z = z; t.castShadow = t.receiveShadow = true;
-    wheelGroup.add(t);
-    const t2 = new THREE.Mesh(new THREE.TorusGeometry(R - 0.5, 0.06, 6, 44), MAT.woodDark);
-    t2.position.z = z; t2.castShadow = true;
-    wheelGroup.add(t2);
+  return { root };
+}
+
+
+/* ============================================================
+   小风车（替代原来的水车）
+   与主塔同源但不同：更矮更粗、灰蓝石板顶、四片木格帆
+   ============================================================ */
+export function buildSmallWindmill() {
+  const root = new THREE.Group();
+  root.name = 'smallWindmill';
+
+  const H = 5.2;
+  const bodyR = (y) => {
+    const t = clamp(y / H, 0, 1);
+    return 1.95 - 0.35 * Math.pow(t, 0.7);
+  };
+
+  // 石基
+  add(root, cyl(2.06, 2.16, 1.0, 40, 2.2), MAT.stone, 0, 0, 0);
+  add(root, cyl(2.18, 2.22, 0.12, 40, 2.2), MAT.stone, 0, 0.96, 0);
+
+  // 塔身
+  const prof = [];
+  for (let i = 0; i <= 14; i++) {
+    const t = i / 14;
+    prof.push([bodyR(t * H), t * H]);
   }
-  const hub = add(wheelGroup, cyl(0.24, 0.24, W + 0.34, 14, 1), MAT.woodDark, 0, 0, -(W + 0.34) / 2);
-  hub.rotation.x = Math.PI / 2;
-  for (let i = 0; i < 12; i++) {
-    const a = (i / 12) * Math.PI * 2;
-    for (const z of [-W / 2, W / 2]) {
-      const m = add(wheelGroup, box(0.07, R, 0.07), MAT.woodDark, 0, 0, z);
-      m.position.set(Math.cos(a) * R / 2, Math.sin(a) * R / 2, z);
-      m.rotation.z = a - Math.PI / 2;
+  prof.push([0, H]);
+  const geo = lathe(prof, 40, 1, 1);
+  add(root, geo, MAT.stuccoTower);
+
+  // 木腰线
+  add(root, cyl(bodyR(2.6) + 0.05, bodyR(2.6) + 0.05, 0.16, 40, 2.0, true), MAT.woodDark, 0, 2.6, 0);
+  add(root, cyl(bodyR(4.3) + 0.05, bodyR(4.3) + 0.05, 0.14, 40, 2.0, true), MAT.woodDark, 0, 4.3, 0);
+
+  // 木质回廊
+  const gal = new THREE.Group();
+  const ring = new THREE.Mesh(new THREE.CylinderGeometry(2.42, 2.42, 0.12, 40), MAT.wood);
+  ring.castShadow = ring.receiveShadow = true;
+  gal.add(ring);
+  for (let i = 0; i < 16; i++) {
+    const a = (i / 16) * Math.PI * 2;
+    add(gal, box(0.07, 0.72, 0.07), MAT.woodDark, Math.sin(a) * 2.34, 0.42, Math.cos(a) * 2.34);
+  }
+  const rail = new THREE.Mesh(new THREE.TorusGeometry(2.34, 0.045, 5, 44), MAT.woodDark);
+  rail.rotation.x = Math.PI / 2;
+  rail.position.y = 0.78;
+  gal.add(rail);
+  gal.position.y = 3.35;
+  root.add(gal);
+
+  // 灰蓝石板顶
+  const roofProf = [
+    [2.02, 0.00], [2.04, 0.10], [1.86, 0.55], [1.56, 1.15],
+    [1.16, 1.72], [0.72, 2.16], [0.34, 2.44], [0.32, 2.60], [0, 2.66],
+  ];
+  const roofGeo = lathe(roofProf, 40, Math.PI * 2 * 2.0 / 2.4, 2.66 / 2.4);
+  add(root, roofGeo, MAT.slate, 0, H, 0);
+  add(root, new THREE.SphereGeometry(0.13, 12, 9), MAT.metal, 0, H + 2.78, 0);
+  add(root, cyl(0.02, 0.035, 0.5, 6, 1), MAT.metal, 0, H + 2.86, 0);
+
+  // 门与窗
+  const d = doorUnit(0.95, 1.85);
+  d.position.set(0, 0.95, bodyR(0.95) - 0.02);
+  root.add(d);
+  const w1 = windowUnit(0.55, 0.72);
+  w1.position.set(0, 3.9, bodyR(3.9) - 0.02);
+  root.add(w1);
+
+  // ---- 风帆 ----
+  const sails = new THREE.Group();
+  sails.position.set(0, 4.75, bodyR(4.75) + 0.35);
+  // 轴
+  const shaft = add(sails, cyl(0.13, 0.13, 0.55, 10, 1), MAT.woodDark, 0, 0, -0.28);
+  shaft.rotation.x = Math.PI / 2;
+  add(sails, new THREE.SphereGeometry(0.17, 12, 9), MAT.woodDark, 0, 0, 0.03);
+
+  const R = 3.35;
+  for (let i = 0; i < 4; i++) {
+    const blade = new THREE.Group();
+    blade.rotation.z = (i * Math.PI) / 2 + 0.22;
+    // 主梁
+    add(blade, box(0.11, R, 0.085), MAT.woodDark, 0, R / 2, 0);
+    // 横档
+    for (let k = 0; k < 6; k++) {
+      const y = 0.55 + k * 0.5;
+      add(blade, box(0.78, 0.045, 0.045), MAT.woodDark, 0.34, y, 0.012);
     }
+    // 帆布
+    add(blade, box(0.66, R * 0.74, 0.016), MAT.sailCloth, 0.37, R * 0.56, 0.02);
+    sails.add(blade);
   }
-  for (let i = 0; i < 18; i++) {
-    const a = (i / 18) * Math.PI * 2;
-    const p = add(wheelGroup, box(0.05, 0.5, W), MAT.woodPlain, Math.cos(a) * R, Math.sin(a) * R, 0);
-    p.rotation.z = a;
-  }
-  root.add(wheelGroup);
+  root.add(sails);
 
-  const axle = add(root, cyl(0.12, 0.12, 1.1, 10, 1), MAT.woodDark, 3.1, 1.58, 2.55);
-  axle.rotation.z = Math.PI / 2;
-
-  // ---- 水池石沿 ----
-  for (const s of [-1, 1]) {
-    for (let i = 0; i < 5; i++) {
-      const z = 1.4 + i * 0.85;
-      const m = add(root, box(0.55, 0.35, 0.78, 1.4), MAT.stone, 4.05 + s * 2.05, -0.92, z);
-      m.rotation.y = (Math.random() - 0.5) * 0.3;
-    }
-  }
-
-  return { root, wheel: wheelGroup };
+  return { root, sails };
 }
 
 /* ============================================================

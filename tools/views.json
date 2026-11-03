@@ -1,5 +1,5 @@
 [
-  { "name": "r3-hero", "view": { "pos": [26, 6.0, 74], "look": [0, 11, 0], "fov": 34 } },
-  { "name": "r3-meadow", "view": { "pos": [2, 6.5, 32], "look": [-14, 6.0, 26], "fov": 45 } },
-  { "name": "r3-mill", "view": { "pos": [15, 9.0, 22], "look": [0, 11, 0], "fov": 40 } }
+  { "name": "wm-hero", "view": { "pos": [26, 6.0, 74], "look": [0, 11, 0], "fov": 34 } },
+  { "name": "wm-close", "view": { "pos": [18, 8.0, 18], "look": [6, 8.5, 3], "fov": 42 } },
+  { "name": "wm-side", "view": { "pos": [2, 8.5, 24], "look": [10, 8.0, 6], "fov": 45 } }
 ]

@@ -366,30 +366,6 @@ export function placeScenery(scene) {
     group.add(p);
   }
 
-  // 石砌涵洞：小径跨过溪沟
-  const culvert = new THREE.Group();
-  const gx = 7.7, gz = 22.0;
-  const groundY = Math.max(
-    terrainHeight(gx, gz), terrainHeight(gx + 2.0, gz), terrainHeight(gx - 2.0, gz),
-    terrainHeight(gx, gz + 2.0), terrainHeight(gx, gz - 2.0)
-  );
-  // 路面石板
-  add(culvert, box(2.3, 0.26, 3.2, 2.6), MAT.stone, 0, -0.13, 0);
-  // 两侧矮石栏
-  for (const s2 of [-1, 1]) {
-    add(culvert, box(0.28, 0.30, 3.2, 2.6), MAT.stone, s2 * 1.15, 0.15, 0);
-    for (let i = 0; i < 4; i++) {
-      add(culvert, box(0.34, 0.18, 0.5, 2.6), MAT.stone, s2 * 1.15, 0.39, -1.2 + i * 0.8);
-    }
-  }
-  // 溪沟两侧的护岸石
-  for (const s2 of [-1, 1]) {
-    add(culvert, box(2.6, 0.5, 0.36, 2.6), MAT.stone, 0, -0.35, s2 * 1.75);
-  }
-  culvert.position.set(gx, groundY, gz);
-  culvert.rotation.y = 0.56;
-  group.add(culvert);
-
   // 木桶木箱
   const barrel = buildBarrel();
   barrel.position.set(2.9, terrainHeight(2.9, 5.3), 5.3);

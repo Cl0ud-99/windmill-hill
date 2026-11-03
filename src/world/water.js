@@ -181,40 +181,6 @@ function riverGeometry(segX = 340, segZ = 10) {
   return g;
 }
 
-function streamGeometry() {
-  const path = resample(STREAM_PTS, 0.7);
-  const pos = [], uv = [], idx = [];
-  const segZ = 4;
-  for (let i = 0; i < path.length; i++) {
-    const [x, z] = path[i];
-    const prev = path[Math.max(0, i - 1)], next = path[Math.min(path.length - 1, i + 1)];
-    let tx = next[0] - prev[0], tz = next[1] - prev[1];
-    const tl = Math.hypot(tx, tz) || 1; tx /= tl; tz /= tl;
-    const nx = -tz, nz = tx;
-    const y = terrainHeight(x, z) + 0.20;
-    const w = 0.46;
-    for (let j = 0; j <= segZ; j++) {
-      const t = j / segZ;
-      const off = (t * 2 - 1) * w;
-      pos.push(x + nx * off, y, z + nz * off);
-      uv.push(t, i * 0.7);
-    }
-  }
-  for (let i = 0; i < path.length - 1; i++) {
-    for (let j = 0; j < segZ; j++) {
-      const a = i * (segZ + 1) + j;
-      const b = a + segZ + 1;
-      idx.push(a, b, a + 1, b, b + 1, a + 1);
-    }
-  }
-  const g = new THREE.BufferGeometry();
-  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
-  g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
-  g.setIndex(idx);
-  g.computeVertexNormals();
-  return g;
-}
-
 /* ---------------- 平面反射 ---------------- */
 class PlanarReflection {
   constructor(width = 1024, height = 512) {
@@ -331,9 +297,5 @@ export function buildWater(heightTex) {
   river.renderOrder = 10;
   river.name = 'river';
 
-  const stream = new THREE.Mesh(streamGeometry(), makeMat(true));
-  stream.renderOrder = 10;
-  stream.name = 'stream';
-
-  return { river, stream, reflection, meshes: [river, stream] };
+  return { river, reflection, meshes: [river] };
 }

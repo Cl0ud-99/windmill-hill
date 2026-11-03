@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import {
   WORLD, HALF, WATER_Y, terrainHeight, riverCenterZ, riverHalfWidth,
-  PATH_MAIN, PATH_GARDEN, WALL_PTS, STREAM_PTS, resample, nearestOnPolyline,
+  PATH_MAIN, PATH_GARDEN, WALL_PTS, resample,
 } from './layout.js';
 import { shared, makeToon } from '../core/materials.js';
 import { fbm, hash2, clamp, smoothstep, mulberry32 } from '../core/noise.js';
@@ -250,16 +250,6 @@ export function buildSplatMap(size = 2048) {
   g.closePath(); g.fill();
   g.restore();
 
-  // 溪流
-  g.save();
-  g.filter = 'blur(6px)';
-  g.strokeStyle = 'rgb(0,0,255)';
-  g.lineWidth = 1.0 * S;
-  g.lineCap = 'round'; g.lineJoin = 'round';
-  g.beginPath();
-  STREAM_PTS.forEach(([x, z], i) => i ? g.lineTo(X(x), Z(z)) : g.moveTo(X(x), Z(z)));
-  g.stroke();
-  g.restore();
 
   // 土路
   const drawPath = (pts, w) => {

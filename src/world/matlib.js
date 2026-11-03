@@ -87,6 +87,17 @@ export function initMatlib() {
     color: 0x3b3f3a, rim: 0.35, rimColor: 0xdfe8ee, spec: 0.55, specPower: 40,
     fresnel: 0.25, noise: 0.06,
   });
+  MAT.slate = makeToon({
+    map: TEX.roof, normalMap: TEX.nRoof, normalScale: 1.0,
+    color: 0xffffff, tint: 0x8b98a6, mapMix: 1,
+    rim: 0.26, rimColor: 0xd8e4f0, spec: 0.22, specPower: 24,
+    fresnel: 0.18, noise: 0.10, noiseScale: 1.2, roughVar: 0.9, saturation: 0.9,
+  });
+  MAT.sailCloth = makeToon({
+    color: 0xe9dfc6, rim: 0.34, rimColor: 0xfff4dc, spec: 0.02,
+    fresnel: 0.05, noise: 0.10, noiseScale: 1.6, side: THREE.DoubleSide,
+    wrap: 0.4,
+  });
   MAT.zinc = makeToon({
     color: 0x6b7178, rim: 0.28, rimColor: 0xd8e2ec, spec: 0.32, specPower: 26,
     fresnel: 0.30, noise: 0.10, noiseScale: 2.0, roughVar: 0.8,

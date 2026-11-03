@@ -75,10 +75,6 @@ export function terrainHeight(x, z) {
   m = m * m * (3 - 2 * m);
   h = mix(h, bed, m * 0.985);
 
-  // 溪流浅沟
-  const s = nearestOnPolyline(x, z, STREAM_PTS);
-  const sm = 1.0 - smoothstep(0.55, 2.3, s.dist);
-  h -= sm * 0.62;
 
   // 建筑台基
   for (const p of PADS) {

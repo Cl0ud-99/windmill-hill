@@ -117,6 +117,7 @@ export class ThirdPersonController {
     };
     pushOut(0, 0, 4.05);        // 风车塔
     pushOut(-8.3, 1.5, 5.6);    // 主屋
+    pushOut(13.2, 3.4, 2.5);    // 小风车
     // 树木
     for (let i = 0; i < this.obstacles.length; i++) {
       const o = this.obstacles[i];
