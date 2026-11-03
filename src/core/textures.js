@@ -330,13 +330,13 @@ export function roofTileTexture(size = 1024) {
       const x = k * cw + (r % 2 ? cw * 0.5 : 0);
       const y = r * rh;
       const tone = 0.82 + rnd() * 0.4;
-      const rr = clamp(158 * tone, 0, 255), gg = clamp(82 * tone, 0, 255), bb = clamp(64 * tone, 0, 255);
+      const rr = clamp(150 * tone, 0, 255), gg = clamp(92 * tone, 0, 255), bb = clamp(76 * tone, 0, 255);
       // 半圆筒瓦
       const grd = g.createLinearGradient(x, 0, x + cw, 0);
-      grd.addColorStop(0, `rgb(${rr * 0.55},${gg * 0.55},${bb * 0.55})`);
-      grd.addColorStop(0.28, `rgb(${rr},${gg},${bb})`);
-      grd.addColorStop(0.62, `rgb(${rr * 1.12},${gg * 1.1},${bb * 1.05})`);
-      grd.addColorStop(1, `rgb(${rr * 0.5},${gg * 0.5},${bb * 0.5})`);
+      grd.addColorStop(0, `rgb(${rr * 0.78},${gg * 0.78},${bb * 0.78})`);
+      grd.addColorStop(0.30, `rgb(${rr},${gg},${bb})`);
+      grd.addColorStop(0.62, `rgb(${rr * 1.04},${gg * 1.03},${bb * 1.02})`);
+      grd.addColorStop(1, `rgb(${rr * 0.74},${gg * 0.74},${bb * 0.74})`);
       g.fillStyle = grd;
       g.beginPath();
       g.moveTo(x, y + rh * 0.92);

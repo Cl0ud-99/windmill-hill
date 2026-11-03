@@ -23,14 +23,12 @@ export function buildBarn(W = 9.0, D = 6.2, H = 4.2, RISE = 2.45) {
   const g = new THREE.Group();
 
   // 石基
-  add(g, box(W + 0.2, 1.25, D + 0.2, 2.4), MAT.stone, 0, 0.62, 0);
+  add(g, box(W + 0.2, 1.25, D + 0.2, 3.4), MAT.stone, 0, 0.62, 0);
   // 木板墙
   add(g, box(W, H - 1.25, D, 1.6), MAT.woodDark, 0, 1.25 + (H - 1.25) / 2, 0);
-  // 竖向板缝
-  const planks = Math.round(W / 0.42);
-  for (let i = 1; i < planks; i++) {
-    const x = -W / 2 + (i / planks) * W;
-    add(g, box(0.035, H - 1.3, 0.04), MAT.wood, x, 1.25 + (H - 1.25) / 2, D / 2 + 0.01);
+  // 横向压条（代替密集竖板条）
+  for (let i = 0; i < 3; i++) {
+    add(g, box(W - 0.1, 0.09, 0.05), MAT.wood, 0, 1.7 + i * 1.05, D / 2 + 0.015);
   }
   // 转角立柱
   for (const sx of [-1, 1]) for (const sz of [-1, 1]) {
@@ -48,21 +46,30 @@ export function buildBarn(W = 9.0, D = 6.2, H = 4.2, RISE = 2.45) {
   }
   add(g, box(W + 0.9, 0.14, 0.2, 1), MAT.roof, 0, H + RISE - 0.02, 0);
 
-  // 大门（双开）
+  // 大门（双开，带门框与斜撑）
+  add(g, box(3.3, 3.15, 0.1), MAT.darkInset, 0, 1.56, D / 2 + 0.02);
   for (const s of [-1, 1]) {
-    const d = add(g, box(1.35, 3.0, 0.09), MAT.wood, s * 0.72, 1.5, D / 2 + 0.03);
-    // 斜撑
-    const brace = add(g, box(0.09, 3.3, 0.05), MAT.woodDark, s * 0.72, 1.5, D / 2 + 0.08);
-    brace.rotation.z = s * 0.42;
+    add(g, box(1.42, 2.96, 0.1), MAT.wood, s * 0.74, 1.5, D / 2 + 0.06);
+    const brace = add(g, box(0.075, 1.55, 0.045), MAT.woodDark, s * 0.74, 1.5, D / 2 + 0.11);
+    brace.rotation.z = s * 0.72;
+    // 铁铰链
+    add(g, box(0.5, 0.07, 0.04), MAT.metal, s * 1.15, 2.45, D / 2 + 0.12);
+    add(g, box(0.5, 0.07, 0.04), MAT.metal, s * 1.15, 0.75, D / 2 + 0.12);
   }
-  add(g, box(3.1, 0.16, 0.22), MAT.woodDark, 0, 3.08, D / 2 + 0.06);
+  add(g, box(3.4, 0.18, 0.26), MAT.woodDark, 0, 3.12, D / 2 + 0.05);
+  add(g, box(0.16, 3.2, 0.22), MAT.woodDark, -1.62, 1.6, D / 2 + 0.05);
+  add(g, box(0.16, 3.2, 0.22), MAT.woodDark, 1.62, 1.6, D / 2 + 0.05);
 
-  // 干草阁楼口
-  add(g, box(1.5, 1.25, 0.12), MAT.darkInset, 0, 3.95, D / 2 + 0.02);
-  add(g, box(1.7, 0.12, 0.2), MAT.woodDark, 0, 4.6, D / 2 + 0.08);
-  // 吊臂
-  g.add(strutMesh(V3(0, 4.5, D / 2 + 0.1), V3(0, 5.1, D / 2 + 1.1), 0.11, MAT.woodDark));
-  add(g, cyl(0.01, 0.01, 0.9, 4, 1), MAT.woodDark, 0, 4.6, D / 2 + 1.0);
+  // 干草阁楼口（带木框）
+  add(g, box(1.42, 1.18, 0.1), MAT.darkInset, 0, 3.62, D / 2 + 0.03);
+  add(g, box(1.62, 0.11, 0.18), MAT.woodDark, 0, 4.24, D / 2 + 0.07);
+  add(g, box(1.62, 0.11, 0.18), MAT.woodDark, 0, 3.0, D / 2 + 0.07);
+  for (const s of [-1, 1]) add(g, box(0.11, 1.3, 0.18), MAT.woodDark, s * 0.76, 3.62, D / 2 + 0.07);
+  // 吊臂：水平伸出，压在屋檐之下
+  add(g, box(0.13, 0.13, 1.35), MAT.woodDark, 0, 4.02, D / 2 + 0.62);
+  g.add(strutMesh(V3(0, 3.45, D / 2 + 0.12), V3(0, 4.0, D / 2 + 0.95), 0.08, MAT.woodDark));
+  add(g, cyl(0.01, 0.01, 0.55, 4, 1), MAT.woodDark, 0, 3.72, D / 2 + 1.22);
+  add(g, new THREE.TorusGeometry(0.06, 0.014, 5, 8), MAT.metal, 0, 3.44, D / 2 + 1.22);
 
   // 小窗
   const w = windowUnit(0.5, 0.62);
@@ -76,11 +83,11 @@ export function buildBarn(W = 9.0, D = 6.2, H = 4.2, RISE = 2.45) {
 /* ============================================================
    石屋：小屋 + 烟囱 + 菜园
    ============================================================ */
-export function buildCottage(W = 6.2, D = 4.6, H = 2.9, RISE = 2.0) {
+export function buildCottage(W = 6.2, D = 4.6, H = 3.0, RISE = 1.75) {
   const g = new THREE.Group();
 
-  add(g, box(W, H, D, 2.2), MAT.stone, 0, H / 2, 0);
-  add(g, box(W + 0.24, 0.4, D + 0.24, 2.2), MAT.stone, 0, 0.2, 0);
+  add(g, box(W, H, D, 3.4), MAT.stone, 0, H / 2, 0);
+  add(g, box(W + 0.24, 0.4, D + 0.24, 3.4), MAT.stone, 0, 0.2, 0);
 
   const roofGeo = gableRoof(W, D, RISE, 0.38, 2.8);
   add(g, roofGeo, MAT.roof, 0, H, 0);
@@ -97,7 +104,7 @@ export function buildCottage(W = 6.2, D = 4.6, H = 2.9, RISE = 2.0) {
   add(g, box(0.64, 0.12, 0.64, 1.8), MAT.stone, W / 2 - 0.9, H + RISE * 0.55 + 0.98, -0.9);
 
   // 门与窗
-  const d = doorUnit(1.0, 2.0);
+  const d = doorUnit(1.0, 2.0, { mat: MAT.woodDark });
   d.position.set(-0.6, 0, D / 2 - 0.02);
   g.add(d);
   const w1 = windowUnit(0.62, 0.78, { shutters: true, box: true });
@@ -144,29 +151,64 @@ export function buildShed(W = 4.2, D = 3.2, H = 2.4) {
 }
 
 /* ============================================================
-   石砌水井
+   石砌水井：砌石井圈 + 木架 + 绞盘 + 吊桶 + 双坡小顶
    ============================================================ */
 export function buildWell() {
   const g = new THREE.Group();
-  // 井圈
-  add(g, cyl(1.05, 1.15, 0.85, 20, 1.6), MAT.stone, 0, 0, 0);
-  add(g, new THREE.TorusGeometry(1.06, 0.09, 6, 20), MAT.stone, 0, 0.86, 0);
-  // 水面
-  const water = new THREE.Mesh(new THREE.CircleGeometry(0.92, 20), MAT.darkInset);
-  water.rotation.x = -Math.PI / 2;
-  water.position.y = 0.62;
-  g.add(water);
-  // 立柱与横梁
-  for (const s of [-1, 1]) {
-    add(g, box(0.12, 1.9, 0.12), MAT.woodDark, s * 0.95, 0.95, 0);
+
+  // 井圈：一圈石块，比整圆柱更像砌筑
+  const N = 12;
+  for (let i = 0; i < N; i++) {
+    const a = (i / N) * Math.PI * 2;
+    const m = add(g, box(0.58, 0.86, 0.26, 2.6), MAT.stone,
+      Math.sin(a) * 0.98, 0.43, Math.cos(a) * 0.98);
+    m.rotation.y = a;
   }
-  add(g, cyl(0.07, 0.07, 2.0, 8, 1), MAT.woodDark, -1.0, 1.86, 0).rotation.z = Math.PI / 2;
-  // 顶棚
-  const roof = add(g, box(2.5, 0.1, 1.4, 2.4), MAT.roof, 0, 2.16, 0);
-  roof.rotation.z = 0.06;
-  // 吊桶
-  add(g, cyl(0.012, 0.012, 0.7, 4, 1), MAT.woodDark, 0, 1.55, 0);
-  add(g, cyl(0.16, 0.13, 0.26, 10, 1), MAT.woodDark, 0, 1.1, 0);
+  // 井沿
+  const rim = new THREE.Mesh(new THREE.TorusGeometry(1.02, 0.075, 6, 26), MAT.stone);
+  rim.rotation.x = Math.PI / 2;
+  rim.position.y = 0.88;
+  rim.castShadow = true;
+  g.add(rim);
+  // 水面
+  const water = new THREE.Mesh(new THREE.CircleGeometry(0.9, 22), MAT.darkInset);
+  water.rotation.x = -Math.PI / 2;
+  water.position.y = 0.55;
+  g.add(water);
+
+  // 立柱
+  for (const s of [-1, 1]) {
+    add(g, box(0.13, 2.05, 0.13), MAT.woodDark, s * 0.92, 1.02, 0);
+    // 斜撑
+    const br = add(g, box(0.07, 0.5, 0.07), MAT.woodDark, s * 0.92, 0.9, 0.16);
+    br.rotation.x = 0.55;
+  }
+  // 横梁（沿 X 贯通）
+  const beamGeo = new THREE.CylinderGeometry(0.07, 0.07, 2.2, 8);
+  beamGeo.rotateZ(Math.PI / 2);
+  add(g, beamGeo, MAT.woodDark, 0, 2.02, 0);
+  // 绞盘
+  const drumGeo = new THREE.CylinderGeometry(0.115, 0.115, 0.62, 12);
+  drumGeo.rotateZ(Math.PI / 2);
+  add(g, drumGeo, MAT.woodDark, 0.28, 2.02, 0);
+  // 摇柄
+  add(g, box(0.05, 0.05, 0.30), MAT.woodDark, 0.62, 2.02, 0.16);
+  add(g, box(0.05, 0.22, 0.05), MAT.woodDark, 0.62, 1.92, 0.30);
+
+  // 绳 + 吊桶
+  add(g, cyl(0.011, 0.011, 0.82, 4, 1), MAT.woodDark, 0, 1.6, 0);
+  add(g, cyl(0.155, 0.125, 0.26, 12, 1), MAT.woodDark, 0, 1.06, 0);
+  add(g, new THREE.TorusGeometry(0.15, 0.016, 5, 12), MAT.metal, 0, 1.16, 0).rotation.x = Math.PI / 2;
+
+  // 双坡小顶（脊沿 Z）
+  for (const s of [-1, 1]) {
+    const panel = add(g, box(1.25, 0.09, 2.35, 2.6), MAT.roof, s * 0.55, 2.2, 0);
+    panel.rotation.z = -s * 0.44;
+  }
+  add(g, box(0.12, 0.1, 2.4, 2.6), MAT.roof, 0, 2.46, 0);
+  // 脊饰
+  add(g, new THREE.SphereGeometry(0.06, 8, 6), MAT.metal, 0, 2.55, 0);
+
   return g;
 }
 

@@ -58,8 +58,8 @@ export function initMatlib() {
     fresnel: 0.20, noise: 0.10, noiseScale: 0.7,
   });
   MAT.roof = makeToon({
-    map: TEX.roof, normalMap: TEX.nRoof, normalScale: 1.1, color: 0xffffff, tint: 0xdfc9b4, mapMix: 1,
-    rim: 0.18, rimColor: 0xffd9b0, spec: 0.16, specPower: 22,
+    map: TEX.roof, normalMap: TEX.nRoof, normalScale: 0.28, color: 0xffffff, tint: 0xc9b39c, mapMix: 1,
+    rim: 0.16, rimColor: 0xffd9b0, spec: 0.10, specPower: 18,
     fresnel: 0.14, noise: 0.08, noiseScale: 0.6, saturation: 1.05,
     roughVar: 0.9,
   });

@@ -341,7 +341,7 @@ export function placeScenery(scene) {
 
   // 路灯
   const lamp = buildLamp();
-  lamp.position.set(9.2, terrainHeight(9.2, 14.8), 14.8);
+  lamp.position.set(13.6, terrainHeight(13.6, 19.5), 19.5);
   group.add(lamp);
 
   // 鸟屋
