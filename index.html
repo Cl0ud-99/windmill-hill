@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>風車の丘 — The Windmill Hill</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23f3e9d2'/%3E%3Cg fill='%232f3a2a'%3E%3Ccircle cx='16' cy='16' r='3.2'/%3E%3Cpath d='M16 4l1.6 8.4-3.2 0z'/%3E%3Cpath d='M16 28l-1.6-8.4 3.2 0z'/%3E%3Cpath d='M4 16l8.4-1.6 0 3.2z'/%3E%3Cpath d='M28 16l-8.4 1.6 0-3.2z'/%3E%3C/g%3E%3C/svg%3E" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300&family=Noto+Serif+SC:wght@300;400&display=swap" rel="stylesheet">
+  <script type="module" crossorigin src="./assets/index-C37h41ei.js"></script>
+  <link rel="stylesheet" crossorigin href="./assets/index-CXAXzgrH.css">
+</head>
+<body>
+<canvas id="scene"></canvas>
+
+<!-- 加载屏 -->
+<div id="loader">
+  <div class="loader-inner">
+    <div class="jp">風 車 の 丘</div>
+    <div class="en">THE WINDMILL HILL</div>
+    <div class="rule"><span id="bar"></span></div>
+    <div class="pct"><span id="pct">0</span><i>%</i></div>
+    <div class="tip" id="tip">正在铺开草甸…</div>
+  </div>
+</div>
+
+<!-- 片头标题 -->
+<div id="titlecard">
+  <div class="tc-jp">風車の丘</div>
+  <div class="tc-en">A Small World, Painted in Sunlight</div>
+</div>
+
+<div id="hud">
+  <div class="brand">
+    <div class="b-jp">風車の丘</div>
+    <div class="b-en">THE WINDMILL HILL · REALTIME DEMO</div>
+  </div>
+
+  <div class="mode" id="mode">
+    <span class="dot"></span><span id="modeText">FREE ROAM</span>
+  </div>
+
+  <div class="hints" id="hints">
+    <div class="row"><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd><span>行走</span></div>
+    <div class="row"><kbd>鼠标</kbd><span>环视</span><kbd>Shift</kbd><span>疾行</span></div>
+    <div class="row"><kbd>Space</kbd><span>上升</span><kbd>Ctrl</kbd><span>下降</span></div>
+    <div class="row sep"><kbd>V</kbd><span>人物视角</span><kbd>C</kbd><span>电影模式</span><kbd>H</kbd><span>隐藏界面</span><kbd>M</kbd><span>声音</span></div>
+  </div>
+
+  <div class="shot" id="shot">
+    <div class="s-idx" id="shotIdx">SHOT 01</div>
+    <div class="s-name" id="shotName">THE HILL</div>
+  </div>
+
+  <div class="fade" id="fade"></div>
+  <div class="bar top"></div>
+  <div class="bar bottom"></div>
+
+  <div class="cross" id="cross"></div>
+</div>
+
+<div id="hintClick">点击画面进入漫游 · 按 <b>V</b> 切换人物视角 · 按 <b>C</b> 播放电影镜头</div>
+
+</body>
+</html>
