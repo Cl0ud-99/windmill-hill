@@ -21,9 +21,12 @@ export function box(w, h, d, tile = TILE) {
   ];
   for (let f = 0; f < 6; f++) {
     const [su, sv] = sizes[f];
+    // 钳制最小 UV 跨度：小构件不会只采到贴图上的一条暗缝
+    const us = Math.max(su / tile, 0.34);
+    const vs = Math.max(sv / tile, 0.34);
     for (let i = 0; i < 4; i++) {
       const k = f * 4 + i;
-      uv.setXY(k, uv.getX(k) * su / tile, uv.getY(k) * sv / tile);
+      uv.setXY(k, uv.getX(k) * us, uv.getY(k) * vs);
     }
   }
   uv.needsUpdate = true;

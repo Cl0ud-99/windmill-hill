@@ -189,9 +189,45 @@ export function stuccoTowerTexture(w = 2048, h = 1024) {
   return tex(c, { repeat: [1, 1] });
 }
 
+
+/* ---------------- 由贴图亮度推导法线贴图 ---------------- */
+export function heightToNormal(srcCanvas, strength = 2.0) {
+  const w = srcCanvas.width, h = srcCanvas.height;
+  const sctx = srcCanvas.getContext('2d');
+  const src = sctx.getImageData(0, 0, w, h).data;
+  const c = canvas(w, h);
+  const g = c.getContext('2d');
+  const img = g.createImageData(w, h);
+  const d = img.data;
+  const lum = (x, y) => {
+    const i = ((y + h) % h * w + (x + w) % w) * 4;
+    return (src[i] * 0.299 + src[i + 1] * 0.587 + src[i + 2] * 0.114) / 255;
+  };
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      // canvas y 向下，UV v 向上，所以 dy 取反
+      const dx = (lum(x + 1, y) - lum(x - 1, y)) * strength;
+      const dy = (lum(x, y - 1) - lum(x, y + 1)) * strength;
+      const nx = -dx, ny = -dy, nz = 1.0;
+      const l = Math.hypot(nx, ny, nz);
+      const i = (y * w + x) * 4;
+      d[i] = (nx / l * 0.5 + 0.5) * 255;
+      d[i + 1] = (ny / l * 0.5 + 0.5) * 255;
+      d[i + 2] = (nz / l * 0.5 + 0.5) * 255;
+      d[i + 3] = 255;
+    }
+  }
+  g.putImageData(img, 0, 0);
+  return c;
+}
+
 /* ---------------- 石块墙（小屋） ---------------- */
 export function stoneTexture(size = 1024, palette = 'warm') {
   const c = canvas(size, size), g = c.getContext('2d');
+  // 同步生成高度图：石块鼓包、灰缝凹陷
+  const hc = canvas(size, size), hg = hc.getContext('2d');
+  hg.fillStyle = '#2b2b2b';
+  hg.fillRect(0, 0, size, size);
   g.fillStyle = palette === 'warm' ? '#7d7462' : '#6c6f66';
   g.fillRect(0, 0, size, size);
   // 噪声底
@@ -232,6 +268,29 @@ export function stoneTexture(size = 1024, palette = 'warm') {
       grd.addColorStop(0.55, `rgb(${rr},${gg},${bb})`);
       grd.addColorStop(1, `rgb(${rr - 34},${gg - 34},${bb - 30})`);
       g.fillStyle = grd; g.fill();
+
+      // 高度：中间鼓、边缘塌（同样的路径）
+      const hgrad = hg.createRadialGradient(
+        x + w / 2, y + h / 2, Math.min(w, h) * 0.06,
+        x + w / 2, y + h / 2, Math.max(w, h) * 0.62
+      );
+      const hv = 0.72 + rnd() * 0.28;
+      hgrad.addColorStop(0, `rgba(255,255,255,${hv})`);
+      hgrad.addColorStop(0.62, `rgba(210,210,210,${hv * 0.92})`);
+      hgrad.addColorStop(1, 'rgba(90,90,90,0.85)');
+      hg.fillStyle = hgrad;
+      hg.beginPath();
+      hg.moveTo(x + rad, y);
+      hg.lineTo(x + w - rad, y);
+      hg.quadraticCurveTo(x + w, y, x + w, y + rad);
+      hg.lineTo(x + w, y + h - rad);
+      hg.quadraticCurveTo(x + w, y + h, x + w - rad, y + h);
+      hg.lineTo(x + rad, y + h);
+      hg.quadraticCurveTo(x, y + h, x, y + h - rad);
+      hg.lineTo(x, y + rad);
+      hg.quadraticCurveTo(x, y, x + rad, y);
+      hg.closePath();
+      hg.fill();
       // 斑驳
       g.save(); g.clip();
       for (let k = 0; k < 16; k++) {
@@ -252,12 +311,16 @@ export function stoneTexture(size = 1024, palette = 'warm') {
     g.beginPath(); g.arc(x, y, 6 + Math.random() * 22, 0, 7); g.fill();
   }
   g.globalAlpha = 1;
-  return tex(c);
+  const t = tex(c);
+  t.userData.height = hc;
+  return t;
 }
 
 /* ---------------- 红瓦屋顶 ---------------- */
 export function roofTileTexture(size = 1024) {
   const c = canvas(size, size), g = c.getContext('2d');
+  const hc = canvas(size, size), hg = hc.getContext('2d');
+  hg.fillStyle = '#3a3a3a'; hg.fillRect(0, 0, size, size);
   g.fillStyle = '#8e3f2a'; g.fillRect(0, 0, size, size);
   const rows = 10, cols = 10;
   const rh = size / rows, cw = size / cols;
@@ -281,6 +344,19 @@ export function roofTileTexture(size = 1024) {
       g.lineTo(x + cw, y + rh);
       g.lineTo(x, y + rh);
       g.closePath(); g.fill();
+
+      // 高度：筒瓦中间高、两侧低
+      const hgr = hg.createLinearGradient(x, 0, x + cw, 0);
+      hgr.addColorStop(0, 'rgba(70,70,70,0.9)');
+      hgr.addColorStop(0.5, 'rgba(255,255,255,0.95)');
+      hgr.addColorStop(1, 'rgba(70,70,70,0.9)');
+      hg.fillStyle = hgr;
+      hg.beginPath();
+      hg.moveTo(x, y + rh * 0.92);
+      hg.quadraticCurveTo(x + cw * 0.5, y + rh * 0.12, x + cw, y + rh * 0.92);
+      hg.lineTo(x + cw, y + rh);
+      hg.lineTo(x, y + rh);
+      hg.closePath(); hg.fill();
       // 高光边
       g.strokeStyle = `rgba(255,220,190,0.18)`; g.lineWidth = 1;
       g.beginPath();
@@ -297,12 +373,16 @@ export function roofTileTexture(size = 1024) {
     g.beginPath(); g.arc(x, y, 4 + Math.random() * 26, 0, 7); g.fill();
   }
   g.globalAlpha = 1;
-  return tex(c);
+  const t = tex(c);
+  t.userData.height = hc;
+  return t;
 }
 
 /* ---------------- 木材 ---------------- */
 export function woodTexture(size = 512, dark = false) {
   const c = canvas(size, size), g = c.getContext('2d');
+  const hc = canvas(size, size), hg = hc.getContext('2d');
+  hg.fillStyle = '#d0d0d0'; hg.fillRect(0, 0, size, size);
   const base = dark ? [138, 104, 70] : [186, 146, 98];
   g.fillStyle = `rgb(${base[0]},${base[1]},${base[2]})`;
   g.fillRect(0, 0, size, size);
@@ -313,7 +393,7 @@ export function woodTexture(size = 512, dark = false) {
       const rings = Math.sin((y / size * 22 + grain * 7) * Math.PI * 2) * 0.5 + 0.5;
       const n = (grain - 0.5) * 34 + (rings - 0.5) * 16;
       const i = (y * size + x) * 4;
-      d[i] = clamp(d[i] + n); d[i + 1] = clamp(d[i + 1] + n * 0.9); d[i + 2] = clamp(d[i + 2] + n * 0.7);
+      d[i] = clamp(d[i] + n, 0, 255); d[i + 1] = clamp(d[i + 1] + n * 0.9, 0, 255); d[i + 2] = clamp(d[i + 2] + n * 0.7, 0, 255);
     }
   }
   g.putImageData(img, 0, 0);
@@ -323,6 +403,8 @@ export function woodTexture(size = 512, dark = false) {
     const y = (i / planks) * size;
     g.fillStyle = 'rgba(20,12,6,0.5)'; g.fillRect(0, y, size, 2);
     g.fillStyle = 'rgba(255,230,190,0.08)'; g.fillRect(0, y + 2, size, 1);
+    hg.fillStyle = 'rgba(30,30,30,1)'; hg.fillRect(0, y - 1, size, 4);
+    hg.fillStyle = 'rgba(255,255,255,0.6)'; hg.fillRect(0, y + 3, size, 2);
   }
   // 节疤
   for (let i = 0; i < 5; i++) {
@@ -333,7 +415,9 @@ export function woodTexture(size = 512, dark = false) {
     }
   }
   g.globalAlpha = 1;
-  return tex(c);
+  const t = tex(c);
+  t.userData.height = hc;
+  return t;
 }
 
 /* ---------------- 树皮 ---------------- */

@@ -28,8 +28,11 @@ export function buildWall(sampleSplat) {
     rim: 0.06, spec: 0.02, fresnel: 0.04, noise: 0.3, noiseScale: 2.5,
   });
   const blockMat = makeToon({
-    color: 0x847c69, rim: 0.22, rimColor: 0xe8dcc4, spec: 0.10, specPower: 14,
-    fresnel: 0.16, noise: 0.18, noiseScale: 2.4, saturation: 0.98,
+    map: MAT.stone.map, normalMap: MAT.stone.uniforms.uNormalMap.value, normalScale: 1.0,
+    color: 0xffffff, tint: 0x8f8570, mapMix: 1,
+    rim: 0.20, rimColor: 0xe0d4bc, spec: 0.10, specPower: 14,
+    fresnel: 0.14, noise: 0.18, noiseScale: 2.4, saturation: 0.98,
+    grime: [4.6, 7.6], roughVar: 0.7,
   });
   const mossMat = makeToon({
     color: 0x6d8a3e, rim: 0.4, rimColor: 0xd8eaa0, spec: 0.05,

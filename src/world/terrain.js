@@ -118,8 +118,13 @@ void main() {
   grass = mix( grass, uGrass3 * 1.08, smoothstep( 0.45, 0.85, n0 ) * 0.45 );
   grass *= 0.88 + 0.24 * n3;
 
-  vec3 dirt = texture2D( uDirt, vWorld.xz * 0.28 ).rgb;
+  vec3 dirt = texture2D( uDirt, vWorld.xz * 0.85 ).rgb;
   dirt = mix( uDirtCol, dirt, 0.55 );
+  // 碎石颗粒
+  float gravel = smoothstep( 0.62, 0.92, fbm2( vWorld.xz * 7.0 ) );
+  dirt = mix( dirt, dirt * 1.35 + 0.03, gravel * 0.5 );
+  // 车辙：沿路方向的两道浅槽
+  dirt *= 0.88 + 0.12 * smoothstep( 0.2, 0.7, abs( sin( vWorld.z * 1.6 ) ) );
 
   float dirtMask = clamp( splat.g * 1.25, 0.0, 1.0 );
   dirtMask *= 0.75 + 0.35 * n2;
@@ -188,10 +193,14 @@ void main() {
 
   // 大气
   vec3 vd = normalize( vWorld - cameraPosition );
-  float f = 1.0 - exp( -pow( dist * uFogDensity, 1.45 ) );
-  f *= mix( 1.0, 0.5, clamp( ( vWorld.y - 1.0 ) / 55.0, 0.0, 1.0 ) );
+  float hLow = exp( -max( vWorld.y - 1.5, 0.0 ) * 0.055 );
+  float hMid = exp( -max( vWorld.y - 1.5, 0.0 ) * 0.012 );
+  float density = 0.42 + 0.42 * hLow + 0.16 * hMid;
+  float f = 1.0 - exp( -dist * uFogDensity * density );
   float sunAmt = pow( max( dot( vd, L ), 0.0 ), 3.0 );
-  vec3 fogC = uFogColor + uSunColor * 0.26 * sunAmt;
+  vec3 fogC = uFogColor + uSunColor * ( 0.20 + 0.30 * hLow ) * sunAmt;
+  float lum0 = dot( outc, vec3( 0.299, 0.587, 0.114 ) );
+  outc = mix( outc, vec3( lum0 ) * 0.9 + outc * 0.1, f * 0.22 );
   outc = mix( outc, fogC, clamp( f, 0.0, 0.95 ) );
 
   outc += ( hash21( gl_FragCoord.xy ) - 0.5 ) * 0.006;

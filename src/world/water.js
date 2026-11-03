@@ -126,7 +126,8 @@ void main() {
   vec3 H = normalize( L + V );
   float spec = pow( max( dot( N, H ), 0.0 ), 260.0 );
   float spec2 = pow( max( dot( N, H ), 0.0 ), 26.0 ) * 0.16;
-  col += uSunColor * ( spec * 2.2 + spec2 );
+  float specMul = uIsStream > 0.5 ? 0.55 : 2.2;
+  col += uSunColor * ( spec * specMul + spec2 * ( uIsStream > 0.5 ? 0.4 : 1.0 ) );
 
   // ---- 大气 ----
   vec3 vd = normalize( vWorld - cameraPosition );
@@ -135,7 +136,7 @@ void main() {
   vec3 fogC = uFogColor + uSunColor * 0.25 * pow( max( dot( vd, L ), 0.0 ), 3.0 );
   col = mix( col, fogC, clamp( f, 0.0, 0.9 ) );
 
-  float alpha = mix( 0.52, 0.96, smoothstep( 0.0, 0.55, depth ) ) * ( uIsStream > 0.5 ? 0.82 : 1.0 );
+  float alpha = mix( 0.52, 0.96, smoothstep( 0.0, 0.55, depth ) ) * ( uIsStream > 0.5 ? 0.92 : 1.0 );
   // 水岸软过渡，避免硬边
   alpha *= smoothstep( 0.0, 0.14, vUv.x ) * smoothstep( 1.0, 0.86, vUv.x );
   alpha = max( alpha, foam * 0.9 );
@@ -312,14 +313,14 @@ export function buildWater(heightTex) {
       uFlowSpeed: { value: isStream ? 2.6 : 0.75 },
       uIsStream: { value: isStream ? 1 : 0 },
       uDeepColor: { value: new THREE.Color(isStream ? 0x1d4a42 : 0x174c56) },
-      uShallowColor: { value: new THREE.Color(isStream ? 0x356e5c : 0x458a7e) },
+      uShallowColor: { value: new THREE.Color(isStream ? 0x2b5c4c : 0x3f8175) },
       uFoamColor: { value: new THREE.Color(0xf2f7ee) },
       uSunDir: shared.uSunDir,
       uSunColor: shared.uSunColor,
       uSkyColor: shared.uSkyColor,
       uFogColor: shared.uFogColor,
       uFogDensity: shared.uFogDensity,
-      uReflectStrength: { value: isStream ? 0.30 : 0.60 },
+      uReflectStrength: { value: isStream ? 0.12 : 0.58 },
       uWaveAmp: { value: isStream ? 1.6 : 1.0 },
       uDebug: { value: 0 },
     },

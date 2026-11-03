@@ -11,9 +11,9 @@ export const shared = {
   uSunColor: { value: new THREE.Color(1.0, 0.94, 0.80) },
   uSkyColor: { value: new THREE.Color(0.66, 0.80, 0.94) },
   uBounceColor: { value: new THREE.Color(0.62, 0.62, 0.36) },
-  uShadowTint: { value: new THREE.Color(0.46, 0.54, 0.76) },
+  uShadowTint: { value: new THREE.Color(0.54, 0.58, 0.70) },
   uFogColor: { value: new THREE.Color(0.44, 0.60, 0.72) },
-  uFogDensity: { value: 0.0024 },
+  uFogDensity: { value: 0.00145 },
   uWindDir: { value: new THREE.Vector2(0.86, 0.51) },
 };
 
@@ -93,6 +93,10 @@ const TOON_FRAG = /* glsl */`
 precision highp float;
 
 uniform sampler2D uMap;
+#ifdef USE_NORMALMAP
+uniform sampler2D uNormalMap;
+uniform float uNormalScale;
+#endif
 uniform vec3  uColor;
 uniform vec3  uColor2;
 uniform float uMapMix;
@@ -198,6 +202,27 @@ void main() {
   }
 
   vec3 N = normalize( vNormalW );
+
+  // 法线贴图：用世界坐标导数构建切线基（无需顶点切线）
+  #ifdef USE_NORMALMAP
+  {
+    vec3 q0 = dFdx( vWorld );
+    vec3 q1 = dFdy( vWorld );
+    vec2 st0 = dFdx( vUv * uUvScale );
+    vec2 st1 = dFdy( vUv * uUvScale );
+    vec3 q1perp = cross( q1, N );
+    vec3 q0perp = cross( N, q0 );
+    vec3 T = q1perp * st0.x + q0perp * st1.x;
+    vec3 B = q1perp * st0.y + q0perp * st1.y;
+    float det = max( dot( T, T ), dot( B, B ) );
+    float sc = det > 0.0 ? inversesqrt( det ) : 0.0;
+    T *= sc; B *= sc;
+    vec3 nt = texture2D( uNormalMap, vUv * uUvScale ).xyz * 2.0 - 1.0;
+    nt.xy *= uNormalScale;
+    N = normalize( T * nt.x + B * nt.y + N * nt.z );
+  }
+  #endif
+
   vec3 V = normalize( vView );
   vec3 L = uSunDir;
 
@@ -224,8 +249,8 @@ void main() {
   col = mix( col, litC, hi * 0.92 );
 
   // 天光 / 地面反弹
-  col += base * uSkyColor * 0.115 * ( 0.55 + 0.45 * N.y ) * ( 0.55 + 0.45 * shadow );
-  col += base * uBounceColor * 0.085 * ( 0.55 - 0.45 * N.y );
+  col += base * uSkyColor * 0.125 * ( 0.55 + 0.45 * N.y ) * ( 0.55 + 0.45 * shadow );
+  col += base * uBounceColor * 0.098 * ( 0.55 - 0.45 * N.y );
 
   // 高光
   vec3 H = normalize( L + V );
@@ -257,10 +282,17 @@ void main() {
   // 大气透视
   vec3 vd = normalize( vWorld - cameraPosition );
   float dist = length( vWorld - cameraPosition );
-  float f = 1.0 - exp( -pow( dist * uFogDensity, 1.45 ) );
-  f *= mix( 1.0, 0.52, clamp( ( vWorld.y - 1.0 ) / 55.0, 0.0, 1.0 ) );
+  // 高度雾：越贴近地面越浓，形成谷地薄霭
+  float hLow = exp( -max( vWorld.y - 1.5, 0.0 ) * 0.055 );
+  float hMid = exp( -max( vWorld.y - 1.5, 0.0 ) * 0.012 );
+  float density = 0.42 + 0.42 * hLow + 0.16 * hMid;
+  float f = 1.0 - exp( -dist * uFogDensity * density );
+  // 朝向太阳时雾里带暖光
   float sunAmt = pow( max( dot( vd, L ), 0.0 ), 3.0 );
-  vec3 fogC = uFogColor + uSunColor * 0.24 * sunAmt;
+  vec3 fogC = uFogColor + uSunColor * ( 0.20 + 0.30 * hLow ) * sunAmt;
+  // 远处轻微去饱和（空气透视）
+  float lum0 = dot( col, vec3( 0.299, 0.587, 0.114 ) );
+  col = mix( col, vec3( lum0 ) * 0.9 + col * 0.1, f * 0.22 );
   col = mix( col, fogC, clamp( f, 0.0, 0.94 ) );
 
   col += ( hash21( gl_FragCoord.xy ) - 0.5 ) * 0.006;
@@ -274,12 +306,15 @@ const LIGHT_UNIFORMS = THREE.UniformsLib.lights;
 export function makeToon(opts = {}) {
   const defines = {};
   if (opts.map) defines.USE_MAP = '';
+  if (opts.normalMap) defines.USE_NORMALMAP = '';
   if (opts.map && opts.alphaMap) defines.USE_ALPHA_MAP = '';
   if (opts.vcolor) defines.USE_VCOL = '';
   if (opts.defines) Object.assign(defines, opts.defines);
 
   const uniforms = Object.assign({}, LIGHT_UNIFORMS, shared, {
     uMap: { value: opts.map || null },
+    uNormalMap: { value: opts.normalMap || null },
+    uNormalScale: { value: opts.normalScale ?? 1.0 },
     uColor: { value: new THREE.Color(opts.color ?? 0xffffff) },
     uColor2: { value: new THREE.Color(opts.color2 ?? 0xffffff) },
     uMapMix: { value: opts.mapMix ?? 1 },

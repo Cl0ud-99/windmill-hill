@@ -25,37 +25,41 @@ export function strutMesh(a, b, t, mat, tile = TILE) {
   return m;
 }
 
-/* ---------------- 窗 ---------------- */
+/* ---------------- 窗 ----------------
+   层叠顺序（局部 z）：墙体 0 → 暗部 0.02 → 窗框 0.05 → 窗台 0.10
+   暗部必须贴在墙面前方，否则会被实体墙挡住变成黑洞
+------------------------------------- */
 export function windowUnit(w = 0.85, h = 1.15, opts = {}) {
   const g = new THREE.Group();
-  const depth = opts.depth ?? 0.18;
 
-  // 石质窗套
-  const surround = add(g, archGeo(w + 0.34, h + 0.3, 0.12), MAT.stone, 0, -0.06, -0.05);
+  // 石质窗套（贴在墙面）
+  const surround = add(g, archGeo(w + 0.34, h + 0.30, 0.10), MAT.stone, 0, -0.06, 0.05);
   surround.castShadow = false;
-  // 深色内凹
-  const inset = add(g, archGeo(w, h, 0.1), MAT.darkInset, 0, 0, -depth);
-  inset.castShadow = false;
-  // 木框
+
+  // 暗部：稍微凹进去一点，但仍在墙面前
+  add(g, archGeo(w, h, 0.06), MAT.darkInset, 0, 0, 0.03).castShadow = false;
+
+  // 木窗框
   const fr = 0.07;
-  add(g, box(fr, h, 0.13), MAT.woodDark, -w / 2, h / 2, 0.0);
-  add(g, box(fr, h, 0.13), MAT.woodDark, w / 2, h / 2, 0.0);
-  add(g, box(w + fr * 2, fr, 0.13), MAT.woodDark, 0, h, 0.0);
-  add(g, box(w + fr * 2, fr, 0.13), MAT.woodDark, 0, 0.02, 0.0);
+  add(g, box(fr, h, 0.10), MAT.woodDark, -w / 2, h / 2, 0.09);
+  add(g, box(fr, h, 0.10), MAT.woodDark, w / 2, h / 2, 0.09);
+  add(g, box(w + fr * 2, fr, 0.10), MAT.woodDark, 0, h, 0.09);
+  add(g, box(w + fr * 2, fr, 0.10), MAT.woodDark, 0, 0.02, 0.09);
   // 十字窗棂
-  add(g, box(w, 0.045, 0.07), MAT.woodDark, 0, h * 0.55, 0.05);
-  add(g, box(0.04, h * 0.9, 0.06), MAT.woodDark, 0, h * 0.5, 0.05);
+  add(g, box(w, 0.045, 0.06), MAT.woodDark, 0, h * 0.55, 0.11);
+  add(g, box(0.04, h * 0.9, 0.05), MAT.woodDark, 0, h * 0.5, 0.11);
   // 窗台
-  add(g, box(w + 0.46, 0.1, 0.3), MAT.stone, 0, -0.08, 0.1);
+  add(g, box(w + 0.46, 0.10, 0.32), MAT.stone, 0, -0.08, 0.14);
 
   if (opts.shutters) {
     for (const s of [-1, 1]) {
-      const sh = add(g, box(w * 0.5, h * 0.94, 0.055), MAT.wood, s * (w * 0.5 + w * 0.27), h * 0.5, 0.16);
-      sh.rotation.y = s * 0.26;
+      const sh = add(g, box(w * 0.5, h * 0.94, 0.05), MAT.wood,
+        s * (w * 0.5 + w * 0.28), h * 0.5, 0.14);
+      sh.rotation.y = s * 0.28;
     }
   }
   if (opts.box) {
-    add(g, box(w + 0.3, 0.24, 0.3), MAT.woodDark, 0, -0.16, 0.18);
+    add(g, box(w + 0.3, 0.24, 0.30), MAT.woodDark, 0, -0.16, 0.20);
   }
   return g;
 }
@@ -63,19 +67,29 @@ export function windowUnit(w = 0.85, h = 1.15, opts = {}) {
 /* ---------------- 门 ---------------- */
 export function doorUnit(w = 1.35, h = 2.45, opts = {}) {
   const g = new THREE.Group();
-  add(g, archGeo(w, h, 0.12), opts.mat || MAT.woodDark, 0, 0, 0);
-  for (let i = -2; i <= 2; i++) {
-    add(g, box(0.05, h * 0.88, 0.025), MAT.wood, i * w * 0.18, h * 0.46, 0.07);
+
+  // 门洞暗部（贴在墙前）
+  add(g, archGeo(w, h, 0.06), MAT.darkInset, 0, 0, 0.02).castShadow = false;
+
+  // 门扇：横板拼成，位于暗部之前
+  add(g, archGeo(w, h, 0.10), opts.mat || MAT.woodDark, 0, 0, 0.07);
+  const boards = 5;
+  for (let i = 0; i < boards; i++) {
+    const bh = (h - 0.06) / boards;
+    add(g, box(w * 0.94, bh * 0.92, 0.04), MAT.wood,
+      0, 0.03 + i * bh + bh * 0.5, 0.115);
   }
-  add(g, box(w * 0.88, 0.055, 0.045), MAT.metal, 0, h * 0.7, 0.09);
-  add(g, box(w * 0.88, 0.055, 0.045), MAT.metal, 0, h * 0.26, 0.09);
-  add(g, new THREE.TorusGeometry(0.07, 0.018, 5, 10), MAT.metal, w * 0.3, h * 0.48, 0.1);
-  // 石框
+  // 铁箍与门环
+  add(g, box(w * 0.9, 0.07, 0.03), MAT.metal, 0, h * 0.70, 0.135);
+  add(g, box(w * 0.9, 0.07, 0.03), MAT.metal, 0, h * 0.24, 0.135);
+  add(g, new THREE.TorusGeometry(0.075, 0.017, 6, 12), MAT.metal, w * 0.3, h * 0.47, 0.145);
+
+  // 石框（凸出墙面）
   const fw = 0.16;
-  add(g, box(fw, h + 0.12, 0.26), MAT.stone, -w / 2 - fw / 2, (h + 0.12) / 2, 0);
-  add(g, box(fw, h + 0.12, 0.26), MAT.stone, w / 2 + fw / 2, (h + 0.12) / 2, 0);
-  add(g, box(w + fw * 2 + 0.34, 0.18, 0.34), MAT.stone, 0, h + 0.16, 0.02);
-  add(g, box(w + 1.0, 0.16, 0.55), MAT.stone, 0, -0.08, 0.3);
+  add(g, box(fw, h + 0.12, 0.24), MAT.stone, -w / 2 - fw / 2, (h + 0.12) / 2, 0.10);
+  add(g, box(fw, h + 0.12, 0.24), MAT.stone, w / 2 + fw / 2, (h + 0.12) / 2, 0.10);
+  add(g, box(w + fw * 2 + 0.34, 0.18, 0.30), MAT.stone, 0, h + 0.16, 0.10);
+  add(g, box(w + 1.0, 0.16, 0.55), MAT.stone, 0, -0.08, 0.22);
   return g;
 }
 
@@ -326,7 +340,8 @@ export function buildMillHouse() {
   const d = doorUnit(1.25, 2.35);
   d.position.set(1.5, 0, D / 2 - 0.02);
   g.add(d);
-  add(g, box(2.3, 0.1, 0.95), MAT.wood, 1.5, 2.7, D / 2 + 0.36);
+  const porch = add(g, box(2.4, 0.12, 1.05, 1.6), MAT.roof, 1.5, 2.72, D / 2 + 0.38);
+  porch.rotation.x = -0.16;
   for (const s of [-1, 1]) add(g, box(0.1, 2.65, 0.1), MAT.woodDark, 1.5 + s * 1.0, 1.33, D / 2 + 0.75);
 
   const w1 = windowUnit(0.9, 1.1, { shutters: true, box: true });

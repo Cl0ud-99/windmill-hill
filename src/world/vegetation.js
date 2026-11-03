@@ -271,9 +271,9 @@ export function treeGeometry(seed = 1, type = 0) {
     paintGeo(g, tint);
     blobs.push(g);
   };
-  const cDark = new THREE.Color(0.50, 0.60, 0.40);
-  const cMid = new THREE.Color(0.80, 0.88, 0.64);
-  const cLight = new THREE.Color(1.08, 1.04, 0.84);
+  const cDark = new THREE.Color(0.40, 0.50, 0.32);
+  const cMid = new THREE.Color(0.78, 0.86, 0.60);
+  const cLight = new THREE.Color(1.16, 1.10, 0.86);
 
   for (let i = 0; i < lobes + 4; i++) {
     const a = (i / lobes) * Math.PI * 2 + rnd() * 0.6;

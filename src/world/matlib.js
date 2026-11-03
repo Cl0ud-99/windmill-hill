@@ -20,19 +20,34 @@ export function initMatlib() {
   TEX.dirt = TX.dirtTexture(512);
   TEX.leafCluster = TX.leafClusterTexture(256);
 
+  // 由各张贴图的亮度推导法线贴图，给表面加起伏
+  const nrm = (canvas, strength, repeat) => {
+    const t = new THREE.CanvasTexture(TX.heightToNormal(canvas, strength));
+    t.wrapS = t.wrapT = THREE.MirroredRepeatWrapping;
+    t.colorSpace = THREE.NoColorSpace;
+    t.anisotropy = 8;
+    if (repeat) t.repeat.set(repeat[0], repeat[1]);
+    return t;
+  };
+  TEX.nStone = nrm(TEX.stone.userData.height || TEX.stone.image, 2.2);
+  TEX.nStucco = nrm(TEX.stuccoTower.image, 1.6);
+  TEX.nRoof = nrm(TEX.roof.userData.height || TEX.roof.image, 2.4);
+  TEX.nWood = nrm(TEX.wood.userData.height || TEX.wood.image, 2.0);
+  TEX.nBark = nrm(TEX.bark.image, 2.4);
+
   MAT.stucco = makeToon({
     map: TEX.stucco, color: 0xffffff, tint: 0xfff4e0, mapMix: 1,
     rim: 0.22, rimColor: 0xfff3d8, spec: 0.03, specPower: 8,
     fresnel: 0.10, noise: 0.07, noiseScale: 0.55, saturation: 1.02,
   });
   MAT.stuccoTower = makeToon({
-    map: TEX.stuccoTower, color: 0xffffff, tint: 0xfff6e6, mapMix: 1,
+    map: TEX.stuccoTower, normalMap: TEX.nStucco, normalScale: 0.75, color: 0xffffff, tint: 0xfff6e6, mapMix: 1,
     rim: 0.22, rimColor: 0xfff3d8, spec: 0.03, specPower: 8,
     fresnel: 0.10, noise: 0.05, noiseScale: 0.55, saturation: 1.02,
     grime: [7.3, 11.0], roughVar: 0.45,
   });
   MAT.stone = makeToon({
-    map: TEX.stone, color: 0xffffff, tint: 0xd6ccb2, mapMix: 1,
+    map: TEX.stone, normalMap: TEX.nStone, normalScale: 1.0, color: 0xffffff, tint: 0xd6ccb2, mapMix: 1,
     rim: 0.26, rimColor: 0xfff0d0, spec: 0.10, specPower: 14,
     fresnel: 0.13, noise: 0.10, noiseScale: 0.7,
     grime: [6.9, 9.6], roughVar: 0.7,
@@ -43,13 +58,13 @@ export function initMatlib() {
     fresnel: 0.20, noise: 0.10, noiseScale: 0.7,
   });
   MAT.roof = makeToon({
-    map: TEX.roof, color: 0xffffff, tint: 0xdfc9b4, mapMix: 1,
+    map: TEX.roof, normalMap: TEX.nRoof, normalScale: 1.1, color: 0xffffff, tint: 0xdfc9b4, mapMix: 1,
     rim: 0.18, rimColor: 0xffd9b0, spec: 0.16, specPower: 22,
     fresnel: 0.14, noise: 0.08, noiseScale: 0.6, saturation: 1.05,
     roughVar: 0.9,
   });
   MAT.wood = makeToon({
-    map: TEX.wood, color: 0xffffff, tint: 0xcabda6, mapMix: 1,
+    map: TEX.wood, normalMap: TEX.nWood, normalScale: 0.8, color: 0xffffff, tint: 0xcabda6, mapMix: 1,
     rim: 0.20, rimColor: 0xffe2b8, spec: 0.06, specPower: 10,
     fresnel: 0.07, noise: 0.10, noiseScale: 0.8, roughVar: 0.8,
   });
@@ -85,12 +100,12 @@ export function initMatlib() {
     fresnel: 0.06, noise: 0.06, side: THREE.DoubleSide,
   });
   MAT.bark = makeToon({
-    map: TEX.bark, color: 0x9a8a76, tint: 0xc0b09a, mapMix: 0.85,
+    map: TEX.bark, normalMap: TEX.nBark, normalScale: 1.0, color: 0x9a8a76, tint: 0xc0b09a, mapMix: 0.85,
     rim: 0.30, rimColor: 0xffe0b0, spec: 0.05, specPower: 8,
     fresnel: 0.05, noise: 0.18, noiseScale: 1.6, saturation: 1.05,
   });
   MAT.leaf = makeToon({
-    color: 0x7d9a58, rim: 0.34, rimColor: 0xdcecc0, spec: 0.05, specPower: 9,
+    color: 0x5c7a3a, rim: 0.30, rimColor: 0xdcecc0, spec: 0.05, specPower: 9,
     fresnel: 0.03, noise: 0.20, noiseScale: 0.7, wrap: 0.62, trans: 0.55,
     saturation: 1.06, vcolor: true,
   });

@@ -73,6 +73,7 @@ async function init() {
   sc.updateProjectionMatrix();
   sun.shadow.bias = -0.00022;
   sun.shadow.normalBias = 0.035;
+  sun.shadow.radius = 4.5;   // Vogel 盘半径（texel），让投影有柔和半影
   scene.add(sun, sun.target);
 
   /* 天空 */
