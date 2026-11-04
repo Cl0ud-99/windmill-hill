@@ -48,7 +48,20 @@ function mat(color, opts = {}) {
   });
 }
 
-/* 一具身体：椭球 + 头 + 喙 + 尾 */
+/* 两点之间一根锥形管 */
+function rodBetween(parent, material, a, b, r0, r1, seg = 6) {
+  const dir = new THREE.Vector3().subVectors(b, a);
+  const len = dir.length();
+  const geo = new THREE.CylinderGeometry(r1, r0, len, seg, 1);
+  geo.translate(0, len / 2, 0);
+  const m = new THREE.Mesh(geo, material);
+  m.position.copy(a);
+  m.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir.normalize());
+  parent.add(m);
+  return m;
+}
+
+/* 一具身体：椭球 + 头 + 喙 + 尾，可选长脖子和拖在身后的腿 */
 function buildBody(o) {
   const g = new THREE.Group();
   const bodyMat = mat(o.body);
@@ -70,6 +83,23 @@ function buildBody(o) {
   beak.rotation.x = Math.PI / 2;
   beak.position.set(0, o.headY ? o.headY - 0.012 : 0, o.headZ + o.headR + o.beakL * 0.42);
   g.add(beak);
+
+  // 长脖子（鹤、鹭这类）
+  if (o.neck) {
+    const n = o.neck;
+    rodBetween(g, headMat,
+      V(0, n.y0, n.z0), V(0, o.headY || 0, o.headZ), n.r0, n.r1, 6);
+  }
+
+  // 拖在身后的长腿（鹤的标志性剪影）
+  if (o.legs) {
+    const l = o.legs;
+    const legMat = mat(l.color);
+    for (const s2 of [-1, 1]) {
+      rodBetween(g, legMat,
+        V(s2 * l.x, l.y0, l.z0), V(s2 * l.x1, l.y1, l.z1), l.r, l.r * 0.6, 5);
+    }
+  }
 
   // 尾：一片薄板，形状由调用方给
   if (o.tailPts) {
@@ -209,8 +239,109 @@ export function makeHawk() {
   return g;
 }
 
+/* ============================================================
+   5. 灰鹤 —— 全场最大，长脖子 + 拖在身后的长腿
+   ============================================================ */
+export function makeCrane() {
+  const g = new THREE.Group();
+  g.add(buildBody({
+    body: 0x9aa0a4, head: 0x2c2f33, beak: 0xc8b478, tail: 0x8d9397,
+    bodyW: 0.082, bodyH: 0.080, bodyL: 0.30, bodyZ: -0.03,
+    headR: 0.055, headY: 0.175, headZ: 0.60, beakR: 0.014, beakL: 0.22,
+    neck: { y0: 0.035, z0: 0.16, r0: 0.040, r1: 0.026 },
+    legs: { x: 0.030, x1: 0.042, y0: -0.02, y1: -0.10, z0: -0.14, z1: -0.80, r: 0.013, color: 0x3a3d40 },
+    tailPts: [[-0.06, -0.26], [0.06, -0.26], [0.08, -0.40], [-0.08, -0.40]],
+  }));
+
+  const wingMat = makeToon({
+    color: 0xa8aeb1, rim: 0.18, rimColor: 0xffffff, spec: 0.0,
+    fresnel: 0.02, noise: 0.0, wrap: 0.5, side: THREE.DoubleSide, vcolor: true,
+  });
+  // 又长又宽，翼尖一大片黑
+  const pts = [
+    [0.00, 0.215], [0.24, 0.205], [0.48, 0.170], [0.72, 0.090],
+    [0.96, -0.010], [1.16, -0.110], [1.10, -0.185], [0.86, -0.200],
+    [0.58, -0.215], [0.30, -0.225], [0.00, -0.220],
+  ];
+  const mk = (side) => {
+    const p = pts.map(([x, z]) => [x * side, z]);
+    const geo = paintSpan(wingGeo(p), 0.62, 0.98, 0x2a2d31);
+    return new THREE.Mesh(geo, wingMat);
+  };
+  const wl = new THREE.Group(); wl.add(mk(-1));
+  const wr = new THREE.Group(); wr.add(mk(1));
+  g.add(wl, wr);
+
+  g.userData.rig = { wl, wr, glide: 0.50, flapAmp: 0.62, flapRate: 2.1, glideTilt: 0.12 };
+  g.userData.span = 2.4;
+  return g;
+}
+
+/* ============================================================
+   6. 绿头鸭 —— 短粗身子、短脖子、翅膀拍得又快又碎
+   ============================================================ */
+export function makeMallard() {
+  const g = new THREE.Group();
+  g.add(buildBody({
+    body: 0x8a7358, head: 0x1f5a46, beak: 0xd8c04a, tail: 0x7a6448,
+    bodyW: 0.078, bodyH: 0.070, bodyL: 0.215, bodyZ: -0.01,
+    headR: 0.062, headY: 0.030, headZ: 0.170, beakR: 0.022, beakL: 0.085,
+    tailPts: [[-0.055, -0.17], [0.055, -0.17], [0.045, -0.30], [-0.045, -0.30]],
+  }));
+
+  const wingMat = makeToon({
+    color: 0x8f7a5e, rim: 0.16, rimColor: 0xfff0d4, spec: 0.0,
+    fresnel: 0.02, noise: 0.0, wrap: 0.5, side: THREE.DoubleSide, vcolor: true,
+  });
+  const pts = [
+    [0.00, 0.135], [0.14, 0.130], [0.28, 0.100], [0.40, 0.040],
+    [0.44, -0.045], [0.36, -0.085], [0.20, -0.115], [0.00, -0.120],
+  ];
+  const mk = (side) => {
+    const p = pts.map(([x, z]) => [x * side, z]);
+    // 翼镜：中段一块蓝紫色的斑
+    const geo = paintSpan(wingGeo(p), 0.24, 0.34, 0x3f5aa8);
+    return new THREE.Mesh(geo, wingMat);
+  };
+  const wl = new THREE.Group(); wl.add(mk(-1));
+  const wr = new THREE.Group(); wr.add(mk(1));
+  g.add(wl, wr);
+
+  g.userData.rig = { wl, wr, glide: 0.05, flapAmp: 0.58, flapRate: 8.2, glideTilt: 0.05 };
+  g.userData.span = 0.86;
+  return g;
+}
+
+/* ============================================================
+   7. 麻雀 —— 只有海鸥五分之一大，扑腾得极快
+   ============================================================ */
+export function makeSparrow() {
+  const g = new THREE.Group();
+  g.add(buildBody({
+    body: 0x6b543c, head: 0x5a4530, beak: 0x2a2620, tail: 0x5a4530,
+    bodyW: 0.030, bodyH: 0.030, bodyL: 0.078, bodyZ: -0.004,
+    headR: 0.027, headY: 0.012, headZ: 0.070, beakR: 0.007, beakL: 0.024,
+    tailPts: [[-0.022, -0.07], [0.022, -0.07], [0.030, -0.135], [-0.030, -0.135]],
+  }));
+
+  const wingMat = mat(0x6f5940);
+  const pts = [
+    [0.00, 0.052], [0.052, 0.048], [0.098, 0.020], [0.128, -0.028],
+    [0.100, -0.052], [0.052, -0.062], [0.00, -0.060],
+  ];
+  const mk = (side) => new THREE.Mesh(wingGeo(pts.map(([x, z]) => [x * side, z])), wingMat);
+  const wl = new THREE.Group(); wl.add(mk(-1));
+  const wr = new THREE.Group(); wr.add(mk(1));
+  g.add(wl, wr);
+
+  g.userData.rig = { wl, wr, glide: 0.0, flapAmp: 0.92, flapRate: 16.0, glideTilt: 0.03 };
+  g.userData.span = 0.28;
+  return g;
+}
+
 export const SPECIES = {
   gull: makeGull, crow: makeCrow, swallow: makeSwallow, hawk: makeHawk,
+  crane: makeCrane, mallard: makeMallard, sparrow: makeSparrow,
 };
 
 /* ============================================================

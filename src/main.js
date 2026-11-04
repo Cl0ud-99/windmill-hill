@@ -14,7 +14,10 @@ import {
 import { buildWall } from './world/walls.js';
 import { buildAOMap, AO_REGION } from './world/ao.js';
 import { buildPollen, buildButterflies } from './world/particles.js';
-import { makeGull, makeCrow, makeSwallow, makeHawk, fly } from './world/birds.js';
+import {
+  makeGull, makeCrow, makeSwallow, makeHawk,
+  makeCrane, makeMallard, makeSparrow, fly,
+} from './world/birds.js';
 import { placeScenery, buildRiverStones } from './world/props.js';
 import { placeVillage } from './world/village.js';
 import { buildWater } from './world/water.js';
@@ -256,15 +259,16 @@ async function init() {
   // 造型确认：?birds=1 时把四种鸟并排挂在空中
   const birdsPreview = new URLSearchParams(location.search).get('birds') === '1';
   if (birdsPreview) {
-    const mk = [makeGull, makeCrow, makeSwallow, makeHawk];
+    const mk = [makeGull, makeCrow, makeSwallow, makeHawk, makeCrane, makeMallard, makeSparrow];
+    const nm = ['海鸥', '乌鸦', '燕子', '鹰', '灰鹤', '绿头鸭', '麻雀'];
     mk.forEach((f, i) => {
       const b = f();
       b.scale.setScalar(1.0);
-      b.position.set(-10.5 + i * 7, 40, -14);   // 背对太阳，天更蓝，剪影看得清
-      b.rotation.y = 0;                    // 面向镜头
+      b.position.set(-15.0 + i * 5.0, 40, -14);   // 背对太阳，天更蓝，剪影看得清
+      b.rotation.y = 0;                           // 面向镜头
       b.userData.rig.wr.rotation.z = 0.34;
       b.userData.rig.wl.rotation.z = -0.34;
-      b.userData.name = ['海鸥', '乌鸦', '燕子', '鹰'][i];
+      b.userData.name = nm[i];
       scene.add(b);
       flock.push(b);
     });
@@ -277,6 +281,12 @@ async function init() {
       { mk: makeCrow, n: 4, y: 23, cx: 20, cz: 15, r: 17, speed: 0.11, span: 1.04 },
       { mk: makeSwallow, n: 8, y: 17, cx: 9, cz: 34, r: 13, speed: 0.20, span: 0.96 },
       { mk: makeHawk, n: 3, y: 39, cx: 2, cz: 27, r: 36, speed: 0.045, span: 1.8 },
+      // 大：鹤飞得最高，绕大圈，排成一条线
+      { mk: makeCrane, n: 5, y: 54, cx: 2, cz: 28, r: 96, speed: 0.030, span: 2.4, spread: 0.026 },
+      // 中：绿头鸭，低空直线快飞
+      { mk: makeMallard, n: 5, y: 21, cx: 14, cz: 31, r: 19, speed: 0.135, span: 0.86 },
+      // 小：麻雀群，贴着树梢乱窜
+      { mk: makeSparrow, n: 14, y: 9, cx: 4, cz: 25, r: 10, speed: 0.30, span: 0.28 },
     ];
     for (const p of plan) {
       for (let i = 0; i < p.n; i++) {
@@ -284,14 +294,16 @@ async function init() {
         const sc = (p.span / b.userData.span) * (0.92 + Math.random() * 0.16);
         b.scale.setScalar(sc);
         b.position.set(p.cx, p.y, p.cz);
+        const spread = p.spread ?? 0;
         fly(b, {
-          cx: p.cx + (Math.random() - 0.5) * 26,
-          cz: p.cz + (Math.random() - 0.5) * 26,
-          y: p.y + (Math.random() - 0.5) * 7,
-          r: p.r * (0.6 + Math.random() * 0.7),
-          speed: p.speed * (0.85 + Math.random() * 0.3),
-          dir: Math.random() > 0.5 ? 1 : -1,
-          phase: Math.random() * 6.28,
+          // 有 spread 的（鹤）共用一个圆心和半径，只错开相位 → 排成一条线
+          cx: p.cx + (spread ? 0 : (Math.random() - 0.5) * 26),
+          cz: p.cz + (spread ? 0 : (Math.random() - 0.5) * 26),
+          y: p.y + (spread ? (Math.random() - 0.5) * 1.2 : (Math.random() - 0.5) * 7),
+          r: spread ? p.r : p.r * (0.6 + Math.random() * 0.7),
+          speed: p.speed * (spread ? 1 : (0.85 + Math.random() * 0.3)),
+          dir: spread ? 1 : (Math.random() > 0.5 ? 1 : -1),
+          phase: Math.random() * 6.28 + i * spread * 40,
         });
         scene.add(b);
         flock.push(b);
