@@ -103,6 +103,40 @@ function tubeBetween(parent, mat, a, b, ra, rb) {
   return m;
 }
 
+/* 一条腿：髋球 + 上段 + 膝球 + 下段 + 蹄
+   髋球的球心就是转轴，所以腿怎么摆都不会和身体之间露出缝 */
+function makeLeg(parent, o) {
+  const {
+    x, y, z, ph = 0, amp = 0.5, bend = 0.5,
+    hipR = 0.08, hipSY = 0.55, rTop, rKnee, rAnkle,
+    upper, lower, kneeZ = 0.010,
+    mat, hipMat, hoofMat, hoofR, hoofSY = 0.6, hoofZ = 0.004,
+    seg = 10,
+  } = o;
+
+  const hip = new THREE.Group();
+  hip.position.set(x, y, z);
+  parent.add(hip);
+
+  // 髋部做成一块压扁、前后拉长的「肉丘」，贴着身体曲线，
+  // 而不是一颗球——球会像贴上去的补丁
+  ball(hip, hipMat || mat, hipR, 1.12, hipSY, 1.42, 0, 0, 0, true, 1);
+  add(hip, rod(rTop, rKnee, upper, seg), mat, 0, 0, 0);
+
+  const knee = new THREE.Group();
+  knee.position.set(0, -upper, kneeZ);
+  hip.add(knee);
+  ball(knee, mat, rKnee * 0.99, 1, 1, 1, 0, 0, 0, false, 1);
+  add(knee, rod(rKnee, rAnkle, lower, seg), mat, 0, 0, 0);
+
+  const foot = new THREE.Group();
+  foot.position.y = -lower;
+  knee.add(foot);
+  if (hoofR > 0) ball(foot, hoofMat, hoofR, 1, hoofSY, 1.1, 0, 0, hoofZ, true, 1);
+
+  return { g: hip, knee, foot, ph, amp, bend, rest: 0 };
+}
+
 /* 折线串成一条尾巴 */
 function chain(parent, mat, pts, r0, r1, tipMat) {
   const n = pts.length - 1;
@@ -298,9 +332,19 @@ function attachBehaviour(g, rig, cfg = {}) {
     const w = st.gait;
     const ph = st.phase;
 
-    /* —— 腿 —— */
+    /* —— 腿：摆动 + 屈膝 + 脚掌保持水平 —— */
     for (const L of rig.legs) {
-      L.g.rotation.x = (L.rest || 0) + Math.sin(ph + L.ph) * (L.amp ?? 0.55) * w;
+      const th = ph + L.ph;
+      const sw = Math.sin(th) * (L.amp ?? 0.55) * w;
+      L.g.rotation.x = (L.rest || 0) + sw;
+      if (L.knee) {
+        // 支撑相（腿向后走）膝盖伸直，摆动相抬腿屈膝
+        const lift = Math.max(0, -Math.cos(th));
+        L.knee.rotation.x = -lift * (L.bend ?? 0.5) * w;
+      }
+      if (L.foot) {
+        L.foot.rotation.x = -sw * 0.45 + (L.knee ? L.knee.rotation.x * 0.55 : 0);
+      }
     }
     /* —— 身体弹跳 —— */
     if (rig.bob) {
@@ -499,12 +543,13 @@ export function buildCartoonDog(cfg = {}) {
   // 四条短腿（粗一点、矮一点，别像桌腿）
   const legs = [];
   const mkLeg = (x, z, ph) => {
-    const lg = new THREE.Group();
-    lg.position.set(x, 0.218, z);
-    g.add(lg);
-    add(lg, rod(0.042, 0.047, 0.184, 9), P.main, 0, 0, 0);
-    ball(lg, P.light, 0.052, 1.00, 0.66, 1.20, 0, -0.184, 0.012, true, 1);
-    legs.push({ g: lg, ph, rest: 0, amp: 0.60 });
+    legs.push(makeLeg(g, {
+      x, z, y: 0.234, ph, amp: 0.62, bend: 0.58,
+      hipR: 0.050, hipSY: 0.60, rTop: 0.046, rKnee: 0.040, rAnkle: 0.038,
+      upper: 0.115, lower: 0.085, kneeZ: 0.008,
+      mat: P.main, hipMat: P.main, hoofMat: P.light,
+      hoofR: 0.052, hoofSY: 0.66, hoofZ: 0.010, seg: 9,
+    }));
   };
   mkLeg(-0.095, 0.180, 0);
   mkLeg(0.095, 0.180, Math.PI);
@@ -588,16 +633,20 @@ export function buildCartoonChicken(cfg = {}) {
   // 腿 + 爪
   const legs = [];
   for (const s of [-1, 1]) {
-    const lg = new THREE.Group();
-    lg.position.set(s * 0.043, 0.128, 0.006);
-    g.add(lg);
-    add(lg, rod(0.0105, 0.0115, 0.128, 6), P.beak, 0, 0, 0);
+    const L = makeLeg(g, {
+      x: s * 0.043, z: 0.006, y: 0.140, ph: s > 0 ? 0 : Math.PI,
+      amp: 0.70, bend: 0.55,
+      hipR: 0.0125, hipSY: 0.70, rTop: 0.0115, rKnee: 0.0105, rAnkle: 0.0105,
+      upper: 0.078, lower: 0.062, kneeZ: 0.004,
+      mat: P.beak, hipMat: P.main, hoofMat: P.beak,
+      hoofR: 0, seg: 6,
+    });
     for (let i = -1; i <= 1; i++) {
-      const toe = add(lg, new THREE.BoxGeometry(0.010, 0.009, 0.052), P.beak, 0, -0.126, 0.020);
+      const toe = add(L.foot, new THREE.BoxGeometry(0.010, 0.009, 0.052), P.beak, 0, 0.002, 0.020);
       toe.rotation.y = i * 0.42;
       toe.position.x = Math.sin(i * 0.42) * 0.020;
     }
-    legs.push({ g: lg, ph: s > 0 ? 0 : Math.PI, rest: 0, amp: 0.70 });
+    legs.push(L);
   }
 
   g.scale.setScalar(0.92);
@@ -671,13 +720,17 @@ export function buildCartoonDuck(cfg = {}) {
   // 腿 + 蹼
   const legs = [];
   for (const s of [-1, 1]) {
-    const lg = new THREE.Group();
-    lg.position.set(s * 0.046, 0.098, 0.010);
-    g.add(lg);
-    add(lg, rod(0.0110, 0.0120, 0.098, 6), P.bill, 0, 0, 0);
-    const foot = add(lg, new THREE.BoxGeometry(0.048, 0.010, 0.062), P.bill, 0, -0.096, 0.014);
-    foot.rotation.y = -s * 0.10;
-    legs.push({ g: lg, ph: s > 0 ? 0 : Math.PI, rest: 0, amp: 0.55 });
+    const L = makeLeg(g, {
+      x: s * 0.046, z: 0.010, y: 0.108, ph: s > 0 ? 0 : Math.PI,
+      amp: 0.55, bend: 0.45,
+      hipR: 0.0130, hipSY: 0.70, rTop: 0.0120, rKnee: 0.0110, rAnkle: 0.0110,
+      upper: 0.056, lower: 0.052, kneeZ: 0.003,
+      mat: P.bill, hipMat: P.main, hoofMat: P.bill,
+      hoofR: 0, seg: 6,
+    });
+    const web = add(L.foot, new THREE.BoxGeometry(0.048, 0.010, 0.062), P.bill, 0, 0.002, 0.014);
+    web.rotation.y = -s * 0.10;
+    legs.push(L);
   }
 
   g.scale.setScalar(0.90);
@@ -773,16 +826,13 @@ export function buildCartoonCow(cfg = {}) {
   // 四条腿
   const legs = [];
   const mkLeg = (x, z, ph) => {
-    const lg = new THREE.Group();
-    lg.position.set(x, 0.60, z);
-    g.add(lg);
-    add(lg, rod(0.112, 0.086, 0.29, 10), P.leg, 0, 0, 0);
-    const knee = new THREE.Group();
-    knee.position.set(0, -0.286, 0.010);
-    lg.add(knee);
-    add(knee, rod(0.090, 0.066, 0.270, 10), P.leg, 0, 0, 0);
-    ball(knee, P.hoof, 0.078, 1.00, 0.60, 1.12, 0, -0.268, 0.004, true, 1);
-    legs.push({ g: lg, ph, rest: 0, amp: 0.42 });
+    legs.push(makeLeg(g, {
+      x, z, y: 0.674, ph, amp: 0.46, bend: 0.40,
+      hipR: 0.115, hipSY: 0.54, rTop: 0.108, rKnee: 0.086, rAnkle: 0.072,
+      upper: 0.335, lower: 0.290, kneeZ: 0.014,
+      mat: P.leg, hipMat: P.plain, hoofMat: P.hoof,
+      hoofR: 0.082, hoofSY: 0.60, hoofZ: 0.004, seg: 10,
+    }));
   };
   mkLeg(-0.228, 0.360, 0);
   mkLeg(0.228, 0.360, Math.PI);
@@ -854,12 +904,13 @@ export function buildCartoonSheep(cfg = {}) {
   // 四条细腿
   const legs = [];
   const mkLeg = (x, z, ph) => {
-    const lg = new THREE.Group();
-    lg.position.set(x, 0.38, z);
-    g.add(lg);
-    add(lg, rod(0.034, 0.038, 0.38, 8), P.face, 0, 0, 0);
-    ball(lg, P.hoof, 0.042, 1.00, 0.62, 1.10, 0, -0.375, 0.004, true, 1);
-    legs.push({ g: lg, ph, rest: 0, amp: 0.62 });
+    legs.push(makeLeg(g, {
+      x, z, y: 0.431, ph, amp: 0.62, bend: 0.50,
+      hipR: 0.039, hipSY: 0.62, rTop: 0.036, rKnee: 0.032, rAnkle: 0.030,
+      upper: 0.225, lower: 0.180, kneeZ: 0.008,
+      mat: P.face, hipMat: P.wool, hoofMat: P.hoof,
+      hoofR: 0.042, hoofSY: 0.62, hoofZ: 0.004, seg: 8,
+    }));
   };
   mkLeg(-0.150, 0.200, 0);
   mkLeg(0.150, 0.200, Math.PI);
