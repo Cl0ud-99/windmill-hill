@@ -328,14 +328,14 @@ export function placeScenery(scene) {
   lw.rotation.set(-Math.PI / 2 + 0.22, 0.4, 0.3);
   group.add(lw);
 
-  // 长椅
+  // 长椅：必须落在花园台基的平地上，且避开绣球丛
   const b1 = buildBench();
-  b1.position.set(13.3, terrainHeight(13.3, 9.6), 9.6);
+  b1.position.set(14.4, terrainHeight(14.4, 11.2), 11.2);
   b1.rotation.y = -2.15;
   group.add(b1);
 
   const b2 = buildBench();
-  b2.position.set(18.9, terrainHeight(18.9, 13.4), 13.4);
+  b2.position.set(18.9, terrainHeight(18.9, 15.6), 15.6);
   b2.rotation.y = -2.05;
   group.add(b2);
 
