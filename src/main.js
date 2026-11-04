@@ -451,13 +451,11 @@ function tick() {
     post.rays.material.uniforms.uIntensity.value = THREE.MathUtils.clamp(facing * 1.6, 0, 1) * 0.85;
     post.grade.uniforms.uRayStrength.value = THREE.MathUtils.clamp(facing * 1.6, 0, 1) * 0.42;
     // 电影模式下开启景深，焦点跟着镜头注视点
-    const wantDof = (mode === 'cine' || mode === 'intro');
-    post.bokeh.enabled = wantDof;
+    const wantDof = window.__dofForce ?? (mode === 'cine' || mode === 'intro');
+    post.dof.enabled = wantDof;
     if (wantDof) {
-      const f = camera.position.distanceTo(cine._l);
-      post.bokeh.uniforms.focus.value = f;
-      post.bokeh.uniforms.aperture.value = 0.0026;
-      post.bokeh.uniforms.maxblur.value = 0.0052;
+      post.dof.setFocus(camera.position.distanceTo(cine._l));
+      post.dof.setAperture(5.2);
     }
     post.grade.uniforms.uTime.value = t;
     post.grade.uniforms.uResolution.value.set(window.innerWidth, window.innerHeight);

@@ -1,6 +1,6 @@
 [
   { "name": "farm-air", "view": { "pos": [20.0, 15.0, 52.0], "look": [0.0, 1.0, 34.0], "fov": 44 }, "wait": 900 },
   { "name": "farm-corner", "view": { "pos": [13.0, 5.4, 43.5], "look": [-2.0, 1.4, 35.0], "fov": 46 }, "wait": 800 },
-  { "name": "farm-cow", "eval": "window.__demo.onlyPet(1) && window.__demo.posePet(1, 1.45) && window.__demo.framePet(1, 2.9, 3.2, 32)", "wait": 700 },
-  { "name": "farm-sheep", "eval": "window.__demo.onlyPet(4) && window.__demo.posePet(4, 0.35) && window.__demo.framePet(4, 2.3, 1.5, 32)", "wait": 700 }
+  { "name": "dof-off", "eval": "window.__dofForce = false; window.__demo.shot(3, 0.5)", "wait": 700 },
+  { "name": "dof-on", "eval": "window.__dofForce = true", "wait": 700 }
 ]

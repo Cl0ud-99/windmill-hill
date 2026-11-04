@@ -3,7 +3,7 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
-import { BokehPass } from 'three/addons/postprocessing/BokehPass.js';
+import { DofPass } from './dof.js';
 import { Pass, FullScreenQuad } from 'three/addons/postprocessing/Pass.js';
 
 /* ---------------- 体积光（屏幕空间径向模糊） ---------------- */
@@ -184,20 +184,19 @@ export function buildPost(renderer, scene, camera) {
 
   const renderPass = new RenderPass(scene, camera);
   // 电影模式景深（默认关闭，避免实时漫游时的额外开销）
-  const bokeh = new BokehPass(scene, camera, {
-    focus: 30, aperture: 0.0022, maxblur: 0.0075,
-  });
-  bokeh.enabled = false;
+  const dof = new DofPass(scene, camera);
+  dof.enabled = false;
+  dof.setSize(size.x, size.y);
 
   const bloom = new UnrealBloomPass(new THREE.Vector2(size.x, size.y), 0.26, 0.68, 1.02);
   const rays = new GodRaysPass();
   const grade = new ShaderPass(GradeShader);
 
   composer.addPass(renderPass);
-  composer.addPass(bokeh);
+  composer.addPass(dof);
   composer.addPass(bloom);
   composer.addPass(rays);
   composer.addPass(grade);
 
-  return { composer, bloom, rays, grade, rt, bokeh };
+  return { composer, bloom, rays, grade, rt, dof };
 }
