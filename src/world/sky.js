@@ -19,6 +19,7 @@ uniform vec3 uSunColor;
 uniform vec3 uSkyColor;
 uniform float uTime;
 uniform float uCloudCover;
+uniform float uDusk;       // 0 = 正午，1 = 黄昏：云的受光色、雾霭、地平线整体往暖色偏
 uniform vec3 uZenith;
 uniform vec3 uHorizon;
 
@@ -64,11 +65,11 @@ void main() {
   // ---- 太阳 ----
   float sd = max( dot( d, L ), 0.0 );
   float disc = smoothstep( 0.9993, 0.99985, sd );
-  col += uSunColor * disc * 5.0;
-  col += uSunColor * pow( sd, 220.0 ) * 1.4;
-  col += uSunColor * pow( sd, 14.0 ) * 0.30;
-  col += uSunColor * pow( sd, 3.0 ) * 0.10;
-  col += vec3( 0.06, 0.09, 0.05 ) * pow( sd, 1.4 );
+  col += uSunColor * disc * ( 5.0 + 2.0 * uDusk );
+  col += uSunColor * pow( sd, 220.0 ) * ( 1.4 + 0.8 * uDusk );
+  col += uSunColor * pow( sd, 14.0 ) * ( 0.30 + 0.30 * uDusk );
+  col += uSunColor * pow( sd, 3.0 ) * ( 0.10 + 0.34 * uDusk );
+  col += vec3( 0.06, 0.09, 0.05 ) * pow( sd, 1.4 ) * ( 1.0 - uDusk );
 
   // ---- 云 ----
   float above = smoothstep( -0.02, 0.10, h );
@@ -83,9 +84,9 @@ void main() {
   float dSun = cloudDensity( p + sunOff, t );
   float lit = clamp( 0.48 + ( dens - dSun ) * 3.4, 0.0, 1.0 );
 
-  vec3 cShade = vec3( 0.36, 0.46, 0.66 );
-  vec3 cMid   = vec3( 0.78, 0.83, 0.91 );
-  vec3 cLit   = vec3( 1.26, 1.22, 1.12 );
+  vec3 cShade = mix( vec3( 0.36, 0.46, 0.66 ), vec3( 0.20, 0.16, 0.30 ), uDusk );
+  vec3 cMid   = mix( vec3( 0.78, 0.83, 0.91 ), vec3( 0.48, 0.33, 0.38 ), uDusk );
+  vec3 cLit   = mix( vec3( 1.26, 1.22, 1.12 ), uSunColor * 2.05, uDusk );
   vec3 cc = mix( cShade, cMid, smoothstep( 0.0, 0.55, lit ) );
   cc = mix( cc, cLit, smoothstep( 0.55, 1.0, lit ) );
 
@@ -103,15 +104,16 @@ void main() {
   vec2 q = d.xz / max( d.y + 0.30, 0.12 );
   float cir = fbm6( vec2( q.x * 0.9 + t * 0.004, q.y * 3.4 - t * 0.002 ) + 11.0 );
   cir = smoothstep( 0.55, 0.86, cir ) * smoothstep( 0.02, 0.35, h ) * 0.45;
-  col = mix( col, vec3( 1.0, 0.99, 0.97 ), cir * 0.5 );
+  col = mix( col, mix( vec3( 1.0, 0.99, 0.97 ), vec3( 1.15, 0.74, 0.56 ), uDusk ), cir * 0.5 );
 
   // ---- 地平线雾霭 ----
   float haze = smoothstep( 0.16, -0.06, h );
-  vec3 hazeCol = mix( vec3( 0.50, 0.66, 0.74 ), uSunColor * 0.92, pow( sd, 2.0 ) * 0.5 );
+  vec3 hazeBase = mix( vec3( 0.50, 0.66, 0.74 ), vec3( 0.80, 0.47, 0.33 ), uDusk );
+  vec3 hazeCol = mix( hazeBase, uSunColor * 0.92, pow( sd, 2.0 ) * ( 0.5 + 0.35 * uDusk ) );
   col = mix( col, hazeCol, haze * 0.92 );
 
   // 地平线以下
-  col = mix( col, vec3( 0.72, 0.79, 0.74 ), smoothstep( -0.01, -0.14, h ) );
+  col = mix( col, mix( vec3( 0.72, 0.79, 0.74 ), vec3( 0.30, 0.23, 0.27 ), uDusk ), smoothstep( -0.01, -0.14, h ) );
 
   // 轻微抖动，避免色带
   col += ( hash21( gl_FragCoord.xy ) - 0.5 ) * 0.006;
@@ -133,6 +135,7 @@ export function buildSky() {
       uHorizon: { value: new THREE.Color(0.40, 0.58, 0.71) },
       uTime: shared.uTime,
       uCloudCover: { value: 1.0 },
+      uDusk: { value: 0.0 },
     },
     side: THREE.BackSide,
     depthWrite: false,

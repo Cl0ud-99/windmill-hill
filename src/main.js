@@ -12,6 +12,7 @@ import {
 import { initMatlib } from './world/matlib.js';
 import { buildWindmill, buildMillHouse, buildSmallWindmill } from './world/buildings.js';
 import { buildPost } from './post/post.js';
+import { createTod } from './core/tod.js';
 import {
   buildGrass, buildTrees, buildWildflowers, buildHydrangeas, makeSplatSampler, buildReeds, buildSeedGrass,
 } from './world/vegetation.js';
@@ -61,6 +62,7 @@ const roam = new RoamController(camera, canvas);
 const cine = new Cinematic(camera);
 let mode = 'intro';
 let post = null;
+let tod = null;
 let mill, house, smallMill, water, sky, terrain, grass, trees, wall, scenery, village;
 let avatar = null;
 let third = null;
@@ -490,6 +492,7 @@ async function init() {
   }
 
   post = buildPost(renderer, scene, camera);
+  tod = createTod({ shared, sky, sun, post, shadowCentre: SHADOW_C });
   ui.progress(1.0, '完成');
   await frame();
 
@@ -580,6 +583,11 @@ addEventListener('keydown', (e) => {
   if (k === 'v') { audio.start(); toggleView(); }
   if (k === 'h') ui.toggleHud();
   if (k === 'm') audio.start();
+  if (k === 't' && tod) {
+    audio.start();
+    tod.toggle();
+    ui.flashTime(tod.label, tod.labelEn);
+  }
 });
 
 /* ============================================================
@@ -603,6 +611,7 @@ function tick() {
   if (mill && mill.sails) mill.sails.rotation.z -= dt * 0.14;
   if (smallMill) smallMill.sails.rotation.z -= dt * 0.22;
   if (sky) sky.mesh.position.copy(camera.position);
+  if (tod) tod.update(dt);
   if (pollen) pollen.material.uniforms.uCam.value.copy(camera.position);
   if (butterflies) butterflies.userData.update(dt);
   for (const b of flock) if (b.userData.update) b.userData.update(dt);
@@ -617,8 +626,9 @@ function tick() {
       THREE.MathUtils.clamp(_sunWorld.x * 0.5 + 0.5, 0.05, 0.95),
       THREE.MathUtils.clamp(_sunWorld.y * 0.5 + 0.5, 0.05, 0.95)
     );
-    post.rays.material.uniforms.uIntensity.value = THREE.MathUtils.clamp(facing * 1.6, 0, 1) * 0.85;
-    post.grade.uniforms.uRayStrength.value = THREE.MathUtils.clamp(facing * 1.6, 0, 1) * 0.42;
+    const raysMul = tod ? tod.raysMul : 1;
+    post.rays.material.uniforms.uIntensity.value = THREE.MathUtils.clamp(facing * 1.6, 0, 1) * 0.85 * raysMul;
+    post.grade.uniforms.uRayStrength.value = THREE.MathUtils.clamp(facing * 1.6, 0, 1) * 0.42 * raysMul;
     // 电影模式下开启景深，焦点跟着镜头注视点
     const wantDof = window.__dofForce ?? (mode === 'cine' || mode === 'intro');
     post.dof.enabled = wantDof;
@@ -659,8 +669,15 @@ window.__demo = {
   get wall() { return wall; }, get scenery() { return scenery; }, get village() { return village; },
   get avatar() { return avatar; }, get third() { return third; },
   get pollen() { return pollen; }, get butterflies() { return butterflies; }, get flock() { return flock; },
-  get pets() { return pets; },
+  get pets() { return pets; }, get tod() { return tod; },
   terrainHeight,
+  /* 昼夜：setTimeOfDay('dusk', 0) 立即切，第二个参数是过渡秒数 */
+  setTimeOfDay(n, secs = 0) {
+    if (!tod) return null;
+    const ok = tod.set(n, secs);
+    if (ok) ui.flashTime(tod.label, tod.labelEn);
+    return ok ? { name: tod.name, elevation: +tod.sunElevation.toFixed(1), shadowR: +tod.shadowRadius.toFixed(0) } : null;
+  },
   enterThird, enterRoam,
   /* 自动把镜头框到某只动物身上（预览造型用） */
   framePet(i, dist = 1.15, side = 0.5, fov = 30) {

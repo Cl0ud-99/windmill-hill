@@ -18,6 +18,7 @@ export const shared = {
   uSunColor: { value: new THREE.Color(1.0, 0.94, 0.80) },
   uSkyColor: { value: new THREE.Color(0.66, 0.80, 0.94) },
   uBounceColor: { value: new THREE.Color(0.62, 0.62, 0.36) },
+  uBounceTint: { value: new THREE.Color(1.0, 1.0, 1.0) },
   uBounceMap: { value: DEFAULT_BOUNCE },
   uBounceRegion: { value: new THREE.Vector4(0, 0, 840, 0) },   // cx, cz, size
   uShadowTint: { value: new THREE.Color(0.54, 0.58, 0.70) },
@@ -190,6 +191,7 @@ uniform vec3  uSunDir;
 uniform vec3  uSunColor;
 uniform vec3  uSkyColor;
 uniform vec3  uBounceColor;
+uniform vec3  uBounceTint;
 uniform sampler2D uBounceMap;
 uniform vec4  uBounceRegion;
 uniform vec3  uShadowTint;
@@ -323,7 +325,7 @@ void main() {
   // 地面反弹：颜色取自脚下的地表材质（草 / 土 / 湿地）
   vec2 bUv = ( vWorld.xz - uBounceRegion.xy ) / uBounceRegion.z + 0.5;
   vec3 bounceC = texture2D( uBounceMap, clamp( bUv, 0.0, 1.0 ) ).rgb;
-  col += base * bounceC * 0.098 * ( 0.55 - 0.45 * N.y );
+  col += base * bounceC * uBounceTint * 0.098 * ( 0.55 - 0.45 * N.y );
 
   // 高光
   vec3 H = normalize( L + V );

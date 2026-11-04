@@ -12,6 +12,7 @@ uniform vec3  uSunDir;
 uniform vec3  uSunColor;
 uniform vec3  uSkyColor;
 uniform vec3  uBounceColor;
+uniform vec3  uBounceTint;
 uniform vec3  uShadowTint;
 uniform vec3  uFogColor;
 uniform float uFogDensity;
@@ -185,7 +186,7 @@ void main() {
   outc = mix( outc, litC, hi * 0.9 );
 
   outc += col * uSkyColor * 0.05 * ( 0.5 + 0.5 * N.y ) * ( 0.5 + 0.5 * shadow );
-  outc += col * uBounceColor * 0.05;
+  outc += col * uBounceColor * uBounceTint * 0.05;
 
   // 湿地面反光
   float wet = clamp( shore * 0.9 + caustic * 0.1, 0.0, 1.0 );

@@ -13,7 +13,11 @@ export class UI {
     this.shotName = document.getElementById('shotName');
     this.fadeEl = document.getElementById('fade');
     this.hintClick = document.getElementById('hintClick');
+    this.todEl = document.getElementById('tod');
+    this.todLabel = document.getElementById('todLabel');
+    this.todEn = document.getElementById('todEn');
     this._shotTimer = null;
+    this._todTimer = null;
     this.hidden = false;
   }
 
@@ -50,6 +54,16 @@ export class UI {
     this.shotEl.classList.add('show');
     clearTimeout(this._shotTimer);
     this._shotTimer = setTimeout(() => this.shotEl.classList.remove('show'), 3200);
+  }
+
+  /* 昼夜切换时右上角浮一个小标签，1.8 秒后淡出 */
+  flashTime(jp, en) {
+    if (!this.todEl) return;
+    if (this.todLabel) this.todLabel.textContent = jp;
+    if (this.todEn) this.todEn.textContent = en || '';
+    this.todEl.classList.add('show');
+    clearTimeout(this._todTimer);
+    this._todTimer = setTimeout(() => this.todEl.classList.remove('show'), 1800);
   }
 
   fade(to, ms = 320) {
