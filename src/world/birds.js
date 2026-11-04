@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { makeToon } from '../core/materials.js';
+import { paintGeo, mergeGeos } from '../core/geom.js';
 
 /* ============================================================
    天空中的鸟
@@ -48,65 +49,64 @@ function mat(color, opts = {}) {
   });
 }
 
-/* 两点之间一根锥形管 */
-function rodBetween(parent, material, a, b, r0, r1, seg = 6) {
+/* 两点之间一根锥形管，返回几何体（不建 mesh，方便后面合并） */
+function tubeGeo(a, b, r0, r1, seg = 6) {
   const dir = new THREE.Vector3().subVectors(b, a);
   const len = dir.length();
-  const geo = new THREE.CylinderGeometry(r1, r0, len, seg, 1);
-  geo.translate(0, len / 2, 0);
-  const m = new THREE.Mesh(geo, material);
-  m.position.copy(a);
-  m.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir.normalize());
-  parent.add(m);
-  return m;
+  const g = new THREE.CylinderGeometry(r1, r0, len, seg, 1);
+  g.translate(0, len / 2, 0);
+  const q = new THREE.Quaternion().setFromUnitVectors(
+    new THREE.Vector3(0, 1, 0), dir.clone().normalize(),
+  );
+  g.applyQuaternion(q);
+  g.translate(a.x, a.y, a.z);
+  return g;
 }
 
-/* 一具身体：椭球 + 头 + 喙 + 尾，可选长脖子和拖在身后的腿 */
+/* 一具身体：椭球 + 头 + 喙 + 尾，可选长脖子和拖在身后的腿。
+   所有零件按各自颜色刷顶点色后合并成一个 mesh——
+   45 只鸟要是每个零件一个 draw call，光这一项就要多花好几毫秒。 */
 function buildBody(o) {
-  const g = new THREE.Group();
-  const bodyMat = mat(o.body);
-  const headMat = mat(o.head || o.body);
-  const tailMat = mat(o.tail || o.body);
+  const parts = [];
+  const push = (geo, color) => { paintGeo(geo, color); parts.push(geo); };
 
-  const torso = new THREE.Mesh(new THREE.SphereGeometry(1, 14, 10), bodyMat);
-  torso.scale.set(o.bodyW, o.bodyH, o.bodyL);
-  torso.position.z = o.bodyZ || 0;
-  g.add(torso);
+  const torso = new THREE.SphereGeometry(1, 14, 10);
+  torso.scale(o.bodyW, o.bodyH, o.bodyL);
+  torso.translate(0, 0, o.bodyZ || 0);
+  push(torso, o.body);
 
-  const head = new THREE.Mesh(new THREE.SphereGeometry(o.headR, 12, 10), headMat);
-  head.position.set(0, o.headY || 0.02, o.headZ);
-  head.scale.set(1, 0.92, 1.08);
-  g.add(head);
+  const head = new THREE.SphereGeometry(o.headR, 12, 10);
+  head.scale(1, 0.92, 1.08);
+  head.translate(0, o.headY || 0.02, o.headZ);
+  push(head, o.head || o.body);
 
-  // 喙
-  const beak = new THREE.Mesh(new THREE.ConeGeometry(o.beakR, o.beakL, 5), mat(o.beak));
-  beak.rotation.x = Math.PI / 2;
-  beak.position.set(0, o.headY ? o.headY - 0.012 : 0, o.headZ + o.headR + o.beakL * 0.42);
-  g.add(beak);
+  const beak = new THREE.ConeGeometry(o.beakR, o.beakL, 5);
+  beak.rotateX(Math.PI / 2);
+  beak.translate(0, (o.headY || 0) - 0.012, o.headZ + o.headR + o.beakL * 0.42);
+  push(beak, o.beak);
 
   // 长脖子（鹤、鹭这类）
   if (o.neck) {
     const n = o.neck;
-    rodBetween(g, headMat,
-      V(0, n.y0, n.z0), V(0, o.headY || 0, o.headZ), n.r0, n.r1, 6);
+    push(tubeGeo(V(0, n.y0, n.z0), V(0, o.headY || 0, o.headZ), n.r0, n.r1, 6),
+      o.head || o.body);
   }
 
   // 拖在身后的长腿（鹤的标志性剪影）
   if (o.legs) {
     const l = o.legs;
-    const legMat = mat(l.color);
     for (const s2 of [-1, 1]) {
-      rodBetween(g, legMat,
-        V(s2 * l.x, l.y0, l.z0), V(s2 * l.x1, l.y1, l.z1), l.r, l.r * 0.6, 5);
+      push(tubeGeo(
+        V(s2 * l.x, l.y0, l.z0), V(s2 * l.x1, l.y1, l.z1), l.r, l.r * 0.6, 5,
+      ), l.color);
     }
   }
 
   // 尾：一片薄板，形状由调用方给
-  if (o.tailPts) {
-    const t = new THREE.Mesh(wingGeo(o.tailPts), tailMat);
-    g.add(t);
-  }
-  return g;
+  if (o.tailPts) push(wingGeo(o.tailPts), o.tail || o.body);
+
+  const mesh = new THREE.Mesh(mergeGeos(parts), mat(0xffffff, { vcolor: true }));
+  return mesh;
 }
 
 /* ============================================================
@@ -345,58 +345,157 @@ export const SPECIES = {
 };
 
 /* ============================================================
-   飞行行为：绕圈 + 压坡转弯 + 拍打/滑翔交替
+   飞行行为
+   ------------------------------------------------------------
+   转向式飞行：只控制「朝向」，位置由朝向推出来，
+   转弯时按转率压坡——这是鸟看起来像鸟的关键。
+   两种航线随机切换：
+     circle  绕着某个中心盘旋
+     wander  飞向活动范围内随机一点，到了再换一个
+   翅膀另有拍打 / 滑翔两种状态，与航线独立。
    ============================================================ */
-export function fly(bird, cfg) {
+export function fly(bird, cfg = {}) {
   const rig = bird.userData.rig;
+  const home = new THREE.Vector3(cfg.x ?? 0, cfg.y ?? 30, cfg.z ?? 0);
+
   const st = {
-    t: cfg.phase ?? Math.random() * 10,
+    pos: home.clone(),
+    yaw: cfg.yaw ?? Math.random() * Math.PI * 2,
+    pitch: 0,
+    bank: 0,
+    speed: cfg.speed ?? 9,
+    turn: cfg.turn ?? 0.55,
+    home,
+    range: cfg.range ?? 55,
+    yMin: cfg.yMin ?? (cfg.y ?? 30) - 9,
+    yMax: cfg.yMax ?? (cfg.y ?? 30) + 11,
+    mode: 'circle',
+    timer: 1 + Math.random() * 6,
+    cx: cfg.cx ?? home.x,
+    cz: cfg.cz ?? home.z,
+    r: cfg.circleR ?? (cfg.speed ?? 9) / (cfg.turn ?? 0.55),
+    dir: cfg.dir ?? (Math.random() > 0.5 ? 1 : -1),
+    target: new THREE.Vector3(),
+    flapPh: Math.random() * 6.28,
     glide: 0,
-    glideT: 1 + Math.random() * 3,
-    y: cfg.y,
-    cx: cfg.cx, cz: cfg.cz, r: cfg.r,
-    a: cfg.phase ?? Math.random() * 6.28,
-    speed: cfg.speed ?? 0.09,
-    dir: cfg.dir ?? 1,
-    bob: Math.random() * 6.28,
+    glideT: 1.5 + Math.random() * 3.5,
+    glideW: rig.glide ?? 0.3,
   };
+
+  // 沿航线摆到圆上的某个角度（鹤群靠这个排成一条线）
+  if (cfg.orbit !== undefined) {
+    const a = cfg.orbit;
+    st.pos.set(st.cx + Math.cos(a) * st.r, home.y, st.cz + Math.sin(a) * st.r);
+    st.yaw = Math.atan2(-Math.sin(a) * st.dir, Math.cos(a) * st.dir);
+  }
+  bird.position.copy(st.pos);
+  bird.rotation.order = 'YXZ';
+
+  const tmp = new THREE.Vector3();
+
+  const pickWanderTarget = () => {
+    const a = Math.random() * Math.PI * 2;
+    const d = st.range * (0.35 + Math.random() * 0.65);
+    st.target.set(
+      st.home.x + Math.cos(a) * d,
+      st.yMin + Math.random() * (st.yMax - st.yMin),
+      st.home.z + Math.sin(a) * d,
+    );
+  };
+
+  const nextMode = () => {
+    // 盘旋和随机飞行交替，比例按种类给
+    const circleBias = cfg.circleBias ?? 0.55;
+    if (st.mode === 'circle') {
+      if (Math.random() < circleBias) { st.timer = 9 + Math.random() * 12; return; }
+      st.mode = 'wander';
+      pickWanderTarget();
+      st.timer = 7 + Math.random() * 9;
+    } else {
+      if (Math.random() < circleBias) { st.timer = 6 + Math.random() * 8; return; }
+      st.mode = 'circle';
+      // 换一个盘旋中心，别老在原地打转
+      const a = Math.random() * Math.PI * 2;
+      const d = st.range * 0.55 * Math.random();
+      st.cx = st.home.x + Math.cos(a) * d;
+      st.cz = st.home.z + Math.sin(a) * d;
+      st.dir = Math.random() > 0.5 ? 1 : -1;
+      st.timer = 8 + Math.random() * 12;
+    }
+  };
+
   bird.userData.st = st;
 
   bird.userData.update = (dt) => {
-    st.t += dt;
-    st.a += dt * st.speed * st.dir;
-    st.bob += dt * 0.7;
+    st.timer -= dt;
+    if (st.timer <= 0) nextMode();
 
-    const x = st.cx + Math.cos(st.a) * st.r;
-    const z = st.cz + Math.sin(st.a) * st.r;
-    bird.position.set(x, st.y + Math.sin(st.bob) * 1.6, z);
+    /* —— 期望方向 —— */
+    const want = tmp.set(0, 0, 0);
+    if (st.mode === 'circle') {
+      const dx = st.pos.x - st.cx;
+      const dz = st.pos.z - st.cz;
+      const d = Math.hypot(dx, dz) || 0.001;
+      // 切向
+      want.set(-dz / d * st.dir, 0, dx / d * st.dir);
+      // 半径修正：偏太远就往里带，偏太近就往外推
+      const err = (d - st.r) / Math.max(st.r, 1);
+      want.x -= (dx / d) * err * 2.2;
+      want.z -= (dz / d) * err * 2.2;
+      // 高度缓慢起伏
+      want.y = Math.sin(st.timer * 0.35) * 0.06;
+    } else {
+      want.subVectors(st.target, st.pos);
+      const d = want.length();
+      if (d < 9) { pickWanderTarget(); want.subVectors(st.target, st.pos); }
+      want.normalize();
+    }
 
-    // 朝向切线方向，并按转弯半径压坡
-    const yaw = Math.atan2(
-      -Math.sin(st.a) * st.dir,
-      Math.cos(st.a) * st.dir,
-    );
-    bird.rotation.set(0, yaw, 0);
-    const bank = -0.55 * st.dir;
-    bird.rotateZ(bank);
+    /* —— 转向：限速逼近，转弯时压坡 —— */
+    const wantYaw = Math.atan2(want.x, want.z);
+    const wantPitch = Math.asin(Math.max(-0.6, Math.min(0.6, want.y)));
+    let dy = wantYaw - st.yaw;
+    dy = Math.atan2(Math.sin(dy), Math.cos(dy));
+    const maxTurn = st.turn * dt;
+    const turnNow = Math.max(-maxTurn, Math.min(maxTurn, dy));
+    st.yaw += turnNow;
+    st.pitch += Math.max(-maxTurn * 0.5, Math.min(maxTurn * 0.5, wantPitch - st.pitch));
 
-    // 拍打 / 滑翔切换
+    // 压坡角跟着实际转率走
+    const bankTarget = -Math.max(-1, Math.min(1, (turnNow / Math.max(dt, 1e-4)) / st.turn)) * 0.72;
+    st.bank += (bankTarget - st.bank) * Math.min(1, dt * 3.2);
+
+    /* —— 位移 —— */
+    const cp = Math.cos(st.pitch);
+    st.pos.x += Math.sin(st.yaw) * cp * st.speed * dt;
+    st.pos.y += Math.sin(st.pitch) * st.speed * dt;
+    st.pos.z += Math.cos(st.yaw) * cp * st.speed * dt;
+
+    // 高度夹在活动区间里，撞到边界就改平飞
+    if (st.pos.y < st.yMin) { st.pos.y = st.yMin; st.pitch = Math.max(st.pitch, 0.05); }
+    if (st.pos.y > st.yMax) { st.pos.y = st.yMax; st.pitch = Math.min(st.pitch, -0.02); }
+
+    bird.position.copy(st.pos);
+    bird.rotation.set(-st.pitch, st.yaw, st.bank);
+
+    /* —— 翅膀：拍打 / 滑翔 —— */
     st.glideT -= dt;
     if (st.glideT <= 0) {
-      st.glideT = 1.5 + Math.random() * 3.5;
+      st.glideT = 1.5 + Math.random() * 4.0;
       st.glide = st.glide ? 0 : 1;
+      // 滑翔时长按种类给：鹰几乎一直在滑，燕子几乎不滑
+      if (st.glide) st.glideT *= 0.6 + st.glideW * 2.2;
     }
     const g = st.glide;
-    const flap = Math.sin(st.t * rig.flapRate) * rig.flapAmp * (1 - g * 0.85);
+    st.flapPh += dt * rig.flapRate * (1 - g * 0.8);
+    const flap = Math.sin(st.flapPh) * rig.flapAmp * (1 - g * 0.88);
     const tilt = rig.glideTilt * g + 0.06;
     rig.wr.rotation.z = flap + tilt;
     rig.wl.rotation.z = -flap - tilt;
-    // 拍翅时翼面略微扭转，剪影才不是一块硬板
-    const twist = Math.cos(st.t * rig.flapRate) * 0.22 * (1 - g * 0.85);
+    const twist = Math.cos(st.flapPh) * 0.22 * (1 - g * 0.88);
     rig.wr.rotation.x = twist;
     rig.wl.rotation.x = twist;
-    // 身体随拍打轻轻上下
-    bird.children[0].position.y = Math.sin(st.t * rig.flapRate + 1.2) * 0.012 * (1 - g);
+    bird.children[0].position.y = Math.sin(st.flapPh + 1.2) * 0.012 * (1 - g);
   };
   return bird;
 }
