@@ -1,5 +1,8 @@
 [
-  { "name": "gap-b", "view": { "pos": [90.0, 90.0, 150.0], "look": [-50.0, 6.0, 20.0], "fov": 44 }, "wait": 900 },
-  { "name": "final-mid", "view": { "pos": [90.0, 30.0, 170.0], "look": [0.0, 8.0, 20.0], "fov": 40 }, "wait": 900 },
-  { "name": "final-main", "view": { "pos": [26.0, 6.0, 74.0], "look": [0.0, 11.0, 0.0], "fov": 34 }, "wait": 900 }
+  { "name": "shot-0", "eval": "window.__demo.shot(0, 0.5)", "wait": 800 },
+  { "name": "shot-1", "eval": "window.__demo.shot(1, 0.5)", "wait": 800 },
+  { "name": "shot-2", "eval": "window.__demo.shot(2, 0.5)", "wait": 800 },
+  { "name": "shot-3", "eval": "window.__demo.shot(3, 0.5)", "wait": 800 },
+  { "name": "shot-5", "eval": "window.__demo.shot(5, 0.5)", "wait": 800 },
+  { "name": "shot-6", "eval": "window.__demo.shot(6, 0.5)", "wait": 800 }
 ]

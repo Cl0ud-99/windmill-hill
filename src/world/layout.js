@@ -190,6 +190,13 @@ export function isUnderwater(x, z) {
   return terrainHeight(x, z) < WATER_Y - 0.02;
 }
 
+/* 是否在河道里（水面 + 岸边 pad 米）。
+   注意别用「高度低于水面」来判断——西边整片谷底都在水面以下，
+   但那不是河，用高度判会把整片谷地误杀。 */
+export function inRiverChannel(x, z, pad = 1.0) {
+  return Math.abs(z - riverCenterZ(x)) < riverHalfWidth(x) + pad;
+}
+
 /* 折线加密 */
 export function resample(pts, step = 1.2) {
   const out = [];

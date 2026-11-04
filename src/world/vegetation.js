@@ -5,7 +5,7 @@ import { MAT } from './matlib.js';
 import {
   terrainHeight, terrainNormal, isUnderwater, nearestOnPolyline,
   PATH_MAIN, PATH_GARDEN, STREAM_PTS, riverCenterZ, riverHalfWidth, WATER_Y,
-  WORLD, HALF,
+  WORLD, HALF, inRiverChannel,
 } from './layout.js';
 import { mulberry32, fbm, smoothstep, clamp } from '../core/noise.js';
 
@@ -92,7 +92,7 @@ export function buildGrass(sampleSplat, opts = {}) {
     const x = cx + Math.cos(ang) * r;
     const z = cz + Math.sin(ang) * r;
     const h = terrainHeight(x, z);
-    if (h < -0.35) continue;
+    if (inRiverChannel(x, z, 1.2)) continue;  // 只避开真正的河道
     const sp = sampleSplat(x, z);
     if (sp[1] > 0.42) continue;               // 土路
     if (sp[2] > 0.55) continue;               // 水面/湿地
@@ -182,7 +182,7 @@ export function buildSeedGrass(sampleSplat, count = 9000, seed = 91, ao = null, 
     const x = 6 + Math.cos(ang) * r;
     const z = 30 + Math.sin(ang) * r;
     const h = terrainHeight(x, z);
-    if (h < -0.3) continue;
+    if (inRiverChannel(x, z, 1.0)) continue;
     const sp = sampleSplat(x, z);
     if (sp[1] > 0.42 || sp[2] > 0.55) continue;
     const nrm = terrainNormal(x, z, 1.2);
@@ -282,7 +282,7 @@ function leafCards(rnd, cy, cr, count = 120) {
   return mergeGeos(parts);
 }
 
-export function treeGeometry(seed = 1, type = 0, far = false) {
+export function treeGeometry(seed = 1, type = 0, lod = 0) {
   const rnd = mulberry32(seed);
   const cfg = [
     { th: 4.8, tr: 0.36, cy: 6.4, cr: 4.0, lobes: 10 },   // 阔叶大树
@@ -292,9 +292,21 @@ export function treeGeometry(seed = 1, type = 0, far = false) {
   ][type];
   const { th, tr, cy, cr, lobes } = cfg;
 
-  /* ---- 远景低模：一根杆 + 五团圆，不生成叶片卡片 ----
-     单棵从 ~8500 面降到 ~500 面，外圈才敢种上千棵 */
-  if (far) {
+  /* ---- LOD2：远景剪影，杆和冠合并成一个几何体，约 30 面 ----
+     200m 外一棵树只有十几像素，这个精度足够 */
+  if (lod >= 2) {
+    const trunk = new THREE.CylinderGeometry(tr * 0.9, tr * 1.15, th * 0.85, 4, 1);
+    trunk.translate(0, th * 0.42, 0);
+    paintGeo(trunk, new THREE.Color(0.26, 0.20, 0.14));
+    const crown = new THREE.IcosahedronGeometry(cr * 0.92, 0);
+    crown.scale(1, 0.88, 1);
+    crown.translate(0, cy, 0);
+    paintGeo(crown, new THREE.Color(0.42, 0.53, 0.33));
+    return { trunk: mergeGeos([trunk, crown]), canopy: null, cards: null, height: cy + cr };
+  }
+
+  /* ---- LOD1：一根杆 + 五团圆，不生成叶片卡片，约 500 面 ---- */
+  if (lod >= 1) {
     const trunk = mergeGeos([branchGeo(
       new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, th * 0.78, 0), tr, tr * 0.55, 5,
     )]);
@@ -369,7 +381,7 @@ export function treeGeometry(seed = 1, type = 0, far = false) {
   /* ---- 三层树冠：下暗、中调、顶亮 ---- */
   const blobs = [];
   const addBlob = (x, y, z, r, squash, tint) => {
-    const g = new THREE.SphereGeometry(r, 14, 10);
+    const g = new THREE.SphereGeometry(r, 11, 9);
     jitter(g, 0.20, 1.9, seed + x * 3.1 + z);
     g.scale(1, squash, 1);
     g.translate(x, y, z);
@@ -412,7 +424,7 @@ export function treeGeometry(seed = 1, type = 0, far = false) {
   }
   colAttr.needsUpdate = true;
 
-  const cards = leafCards(rnd, cy, cr, type === 3 ? 56 : 150);
+  const cards = leafCards(rnd, cy, cr, type === 3 ? 40 : 90);
 
   return { trunk, canopy, cards, height: cy + cr };
 }
@@ -423,8 +435,8 @@ export function buildTrees(sampleSplat, placements) {
   const byType = new Map();
 
   for (const p of placements) {
-    // key = 类型 + 10 表示「远景低模」
-    const key = (p.type ?? 0) + (p.far ? 10 : 0);
+    // key = 类型 + lod * 10
+    const key = (p.type ?? 0) + (p.lod ?? 0) * 10;
     if (!byType.has(key)) byType.set(key, []);
     byType.get(key).push(p);
   }
@@ -434,16 +446,24 @@ export function buildTrees(sampleSplat, placements) {
 
   for (const [key, list] of byType) {
     const type = key % 10;
-    const far = key >= 10;
-    const geo = treeGeometry(11 + type * 7, type, far);
-    const trunkMesh = new THREE.InstancedMesh(geo.trunk, MAT.bark, list.length);
-    const canopyMesh = new THREE.InstancedMesh(geo.canopy, MAT.leaf, list.length);
+    const lod = Math.floor(key / 10);
+    const geo = treeGeometry(11 + type * 7, type, lod);
+    // LOD2 把树干和树冠合成了一个几何体，用树叶材质渲染
+    const trunkMesh = geo.canopy
+      ? new THREE.InstancedMesh(geo.trunk, MAT.bark, list.length)
+      : new THREE.InstancedMesh(geo.trunk, MAT.leaf, list.length);
+    const canopyMesh = geo.canopy
+      ? new THREE.InstancedMesh(geo.canopy, MAT.leaf, list.length)
+      : null;
     const cardMesh = geo.cards
       ? new THREE.InstancedMesh(geo.cards, MAT.leafCard, list.length)
       : null;
     trunkMesh.castShadow = trunkMesh.receiveShadow = true;
-    canopyMesh.castShadow = canopyMesh.receiveShadow = true;
-    trunkMesh.frustumCulled = canopyMesh.frustumCulled = false;
+    trunkMesh.frustumCulled = false;
+    if (canopyMesh) {
+      canopyMesh.castShadow = canopyMesh.receiveShadow = true;
+      canopyMesh.frustumCulled = false;
+    }
     if (cardMesh) {
       cardMesh.castShadow = false;
       cardMesh.receiveShadow = true;
@@ -458,22 +478,30 @@ export function buildTrees(sampleSplat, placements) {
       dummy.scale.set(s, s * (p.stretch ?? 1), s);
       dummy.updateMatrix();
       trunkMesh.setMatrixAt(i, dummy.matrix);
-      canopyMesh.setMatrixAt(i, dummy.matrix);
       col.setHSL(0.19 + Math.random() * 0.085, 0.30 + Math.random() * 0.26, 0.30 + Math.random() * 0.30);
-      canopyMesh.setColorAt(i, col);
+      if (canopyMesh) {
+        canopyMesh.setMatrixAt(i, dummy.matrix);
+        canopyMesh.setColorAt(i, col);
+      } else {
+        trunkMesh.setColorAt(i, col);
+      }
       if (cardMesh) {
         cardMesh.setMatrixAt(i, dummy.matrix);
         cardMesh.setColorAt(i, col);
       }
     });
     trunkMesh.instanceMatrix.needsUpdate = true;
-    canopyMesh.instanceMatrix.needsUpdate = true;
-    if (canopyMesh.instanceColor) canopyMesh.instanceColor.needsUpdate = true;
+    if (trunkMesh.instanceColor) trunkMesh.instanceColor.needsUpdate = true;
+    if (canopyMesh) {
+      canopyMesh.instanceMatrix.needsUpdate = true;
+      if (canopyMesh.instanceColor) canopyMesh.instanceColor.needsUpdate = true;
+    }
     if (cardMesh) {
       cardMesh.instanceMatrix.needsUpdate = true;
       if (cardMesh.instanceColor) cardMesh.instanceColor.needsUpdate = true;
     }
-    group.add(trunkMesh, canopyMesh);
+    group.add(trunkMesh);
+    if (canopyMesh) group.add(canopyMesh);
     if (cardMesh) group.add(cardMesh);
   }
   return group;
@@ -564,7 +592,7 @@ export function buildWildflowers(sampleSplat, count = 14000, seed = 21, ao = nul
     const x = 6 + Math.cos(ang) * r;
     const z = 30 + Math.sin(ang) * r;
     const h = terrainHeight(x, z);
-    if (h < -0.3) continue;
+    if (inRiverChannel(x, z, 1.0)) continue;
     const sp = sampleSplat(x, z);
     if (sp[1] > 0.5 || sp[2] > 0.5) continue;
     if (opts.skip && opts.skip(x, z)) continue;

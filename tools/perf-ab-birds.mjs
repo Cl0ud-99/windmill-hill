@@ -25,8 +25,8 @@ const sample = async (label) => {
   console.log(label, 'median', ms[Math.floor(ms.length / 2)].toFixed(2), 'p90', ms[Math.floor(ms.length * 0.9)].toFixed(2));
 };
 
-await sample('with birds ');
-await page.evaluate(() => { for (const b of window.__demo.flock) b.visible = false; });
+await sample('with trees ');
+await page.evaluate(() => { window.__demo.trees.visible = false; });
 await new Promise((r) => setTimeout(r, 800));
-await sample('no birds   ');
+await sample('no trees   ');
 await browser.close();

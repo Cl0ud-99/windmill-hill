@@ -1,11 +1,11 @@
 import * as THREE from 'three';
 import { shared, setTime } from './core/materials.js';
-import { fbm } from './core/noise.js';
+import { fbm, smoothstep } from './core/noise.js';
 import { buildSky } from './world/sky.js';
 import { buildTerrain, buildSplatMap, buildFarHills, buildHeightTexture } from './world/terrain.js';
 import {
   riverCenterZ, riverHalfWidth, terrainHeight, WATER_Y, PASTURE, inPasture, pastureClearance,
-  HALF, isUnderwater,
+  HALF, inRiverChannel, nearestOnPolyline, PATH_MAIN, PATH_GARDEN,
 } from './world/layout.js';
 import { initMatlib } from './world/matlib.js';
 import { buildWindmill, buildMillHouse, buildSmallWindmill } from './world/buildings.js';
@@ -170,9 +170,9 @@ async function init() {
       return big * 0.70 + mid * 0.30;
     };
 
-    const TARGET = 7200;
+    const TARGET = 9000;
     let guard = 0;
-    while (treeList.length < TARGET && guard < 120000) {
+    while (treeList.length < TARGET && guard < 260000) {
       guard++;
       const a = rnd() * Math.PI * 2;
       const r = Math.sqrt(rnd()) * (HALF - 26);
@@ -180,24 +180,33 @@ async function init() {
       const z = Math.sin(a) * r + 12;
 
       if (Math.abs(x) > HALF - 24 || Math.abs(z) > HALF - 24) continue;
-      if (forest(x, z) < 0.455) continue;          // 空地
-      if (isUnderwater(x, z)) continue;
+      // 软阈值：噪声低的地方变稀，但不会出现整片秃地
+      const p = 0.42 + 0.58 * smoothstep(0.40, 0.58, forest(x, z));
+      if (rnd() > p) continue;
+      if (inRiverChannel(x, z, 1.5)) continue;
       if (inPasture(x, z, 2.5)) continue;
       // 村子周围留出场地（半径别开太大，否则风车会孤零零站在空地上）
-      if (Math.hypot(x, z) < 19) continue;
+      if (Math.hypot(x, z) < 30) continue;
       if (Math.hypot(x + 8.3, z - 1.5) < 11) continue;
       if (Math.hypot(x - 13.2, z - 3.4) < 8) continue;
       if (Math.hypot(x - 15.6, z - 11.6) < 11) continue;
       if (Math.hypot(x + 15, z - 8.5) < 6) continue;
+      // 土路两侧留出走廊，别把路封死
+      if (nearestOnPolyline(x, z, PATH_MAIN).dist < 5.0) continue;
+      if (nearestOnPolyline(x, z, PATH_GARDEN).dist < 2.8) continue;
+      // 漫游落地点周围留一块空地，否则玩家一睁眼就在树冠里
+      if (Math.hypot(x - 26, z - 84) < 20) continue;
+      if (Math.hypot(x - 12, z - 30) < 10) continue;
 
-      const far = r > 125;
+      // 三档细节：近处全建模、中景低模、200m 外只剩一个剪影
+      const lod = r < 85 ? 0 : (r < 200 ? 1 : 2);
       treeList.push({
         x, z,
         type: rnd() > 0.4 ? 0 : 1,
-        scale: (far ? 0.9 : 0.8) + rnd() * 0.7,
+        scale: (lod ? 0.9 : 0.8) + rnd() * 0.7,
         rot: rnd() * 6.28,
         stretch: 0.88 + rnd() * 0.3,
-        far,
+        lod,
       });
     }
   }
