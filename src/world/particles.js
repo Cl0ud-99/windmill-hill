@@ -185,66 +185,6 @@ export function buildButterflies(spots, count = 7) {
 /* ============================================================
    盘旋的鸟
    ============================================================ */
-export function buildBirds(count = 6, seed = 77) {
-  const group = new THREE.Group();
-  group.name = 'birds';
-  const rnd = mulberry32(seed);
-  const mat = new THREE.MeshBasicMaterial({
-    color: 0x3a4148, side: THREE.DoubleSide, transparent: true, opacity: 0.85,
-  });
-
-  for (let i = 0; i < count; i++) {
-    const b = new THREE.Group();
-    const g = new THREE.BufferGeometry();
-    // 一个 V 形：两片三角翼
-    const v = new Float32Array([
-      0, 0, 0.06, -0.55, 0.02, -0.18, 0, 0, -0.12,
-      0, 0, 0.06, 0, 0, -0.12, 0.55, 0.02, -0.18,
-    ]);
-    g.setAttribute('position', new THREE.BufferAttribute(v, 3));
-    g.computeVertexNormals();
-    const m = new THREE.Mesh(g, mat);
-    b.add(m);
-
-    b.userData = {
-      cx: 6 + (rnd() - 0.5) * 40,
-      cz: 20 + (rnd() - 0.5) * 40,
-      y: 30 + rnd() * 26,
-      radius: 26 + rnd() * 40,
-      phase: rnd() * 6.28,
-      speed: 0.055 + rnd() * 0.05,
-      flap: 5 + rnd() * 3,
-      mesh: m,
-      scale: 1.4 + rnd() * 1.2,
-    };
-    b.scale.setScalar(b.userData.scale);
-    group.add(b);
-  }
-
-  let t = 0;
-  group.userData.update = (dt) => {
-    t += dt;
-    for (const b of group.children) {
-      const u = b.userData;
-      const a = t * u.speed + u.phase;
-      b.position.set(
-        u.cx + Math.cos(a) * u.radius,
-        u.y + Math.sin(a * 1.7) * 2.5,
-        u.cz + Math.sin(a) * u.radius
-      );
-      b.rotation.y = -a + Math.PI / 2;
-      b.rotation.z = Math.sin(a) * 0.16;
-      const f = Math.sin(t * u.flap + u.phase) * 0.55;
-      u.mesh.scale.y = 1;
-      u.mesh.rotation.z = 0;
-      u.mesh.geometry.attributes.position.array[4] = f * 0.5;
-      u.mesh.geometry.attributes.position.array[13] = f * 0.5;
-      u.mesh.geometry.attributes.position.needsUpdate = true;
-    }
-  };
-  return group;
-}
-
 /* ============================================================
    烟囱炊烟
    ============================================================ */

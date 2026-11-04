@@ -13,7 +13,8 @@ import {
 } from './world/vegetation.js';
 import { buildWall } from './world/walls.js';
 import { buildAOMap, AO_REGION } from './world/ao.js';
-import { buildPollen, buildButterflies, buildBirds } from './world/particles.js';
+import { buildPollen, buildButterflies } from './world/particles.js';
+import { makeGull, makeCrow, makeSwallow, makeHawk, fly } from './world/birds.js';
 import { placeScenery, buildRiverStones } from './world/props.js';
 import { placeVillage } from './world/village.js';
 import { buildWater } from './world/water.js';
@@ -56,7 +57,8 @@ let post = null;
 let mill, house, smallMill, water, sky, terrain, grass, trees, wall, scenery, village;
 let avatar = null;
 let third = null;
-let pollen = null, butterflies = null, birds = null;
+let pollen = null, butterflies = null;
+let flock = [];
 let pets = [];
 
 const frame = () => new Promise((r) => requestAnimationFrame(() => setTimeout(r, 0)));
@@ -251,8 +253,51 @@ async function init() {
     { x: 11.5, z: 9.5 }, { x: 20, z: 10.5 }, { x: 9, z: 12 },
   ], 8);
   scene.add(butterflies);
-  birds = buildBirds(6);
-  scene.add(birds);
+  // 造型确认：?birds=1 时把四种鸟并排挂在空中
+  const birdsPreview = new URLSearchParams(location.search).get('birds') === '1';
+  if (birdsPreview) {
+    const mk = [makeGull, makeCrow, makeSwallow, makeHawk];
+    mk.forEach((f, i) => {
+      const b = f();
+      b.scale.setScalar(1.0);
+      b.position.set(-10.5 + i * 7, 40, -14);   // 背对太阳，天更蓝，剪影看得清
+      b.rotation.y = 0;                    // 面向镜头
+      b.userData.rig.wr.rotation.z = 0.34;
+      b.userData.rig.wl.rotation.z = -0.34;
+      b.userData.name = ['海鸥', '乌鸦', '燕子', '鹰'][i];
+      scene.add(b);
+      flock.push(b);
+    });
+  }
+
+  // 天空里的鸟：海鸥、乌鸦、燕子、鹰各一群
+  if (!birdsPreview) {
+    const plan = [
+      { mk: makeGull, n: 6, y: 27, cx: 0, cz: 33, r: 22, speed: 0.075, span: 1.5 },
+      { mk: makeCrow, n: 4, y: 23, cx: 20, cz: 15, r: 17, speed: 0.11, span: 1.04 },
+      { mk: makeSwallow, n: 8, y: 17, cx: 9, cz: 34, r: 13, speed: 0.20, span: 0.96 },
+      { mk: makeHawk, n: 3, y: 39, cx: 2, cz: 27, r: 36, speed: 0.045, span: 1.8 },
+    ];
+    for (const p of plan) {
+      for (let i = 0; i < p.n; i++) {
+        const b = p.mk();
+        const sc = (p.span / b.userData.span) * (0.92 + Math.random() * 0.16);
+        b.scale.setScalar(sc);
+        b.position.set(p.cx, p.y, p.cz);
+        fly(b, {
+          cx: p.cx + (Math.random() - 0.5) * 26,
+          cz: p.cz + (Math.random() - 0.5) * 26,
+          y: p.y + (Math.random() - 0.5) * 7,
+          r: p.r * (0.6 + Math.random() * 0.7),
+          speed: p.speed * (0.85 + Math.random() * 0.3),
+          dir: Math.random() > 0.5 ? 1 : -1,
+          phase: Math.random() * 6.28,
+        });
+        scene.add(b);
+        flock.push(b);
+      }
+    }
+  }
 
   const heightTex = buildHeightTexture(512);
   water = buildWater(heightTex);
@@ -436,7 +481,7 @@ function tick() {
   if (sky) sky.mesh.position.copy(camera.position);
   if (pollen) pollen.material.uniforms.uCam.value.copy(camera.position);
   if (butterflies) butterflies.userData.update(dt);
-  if (birds) birds.userData.update(dt);
+  for (const b of flock) if (b.userData.update) b.userData.update(dt);
   for (const p of pets) if (p.userData.update) p.userData.update(dt, t);
 
   if (post && water) {
@@ -489,7 +534,7 @@ window.__demo = {
   get grass() { return grass; }, get trees() { return trees; },
   get wall() { return wall; }, get scenery() { return scenery; }, get village() { return village; },
   get avatar() { return avatar; }, get third() { return third; },
-  get pollen() { return pollen; }, get butterflies() { return butterflies; }, get birds() { return birds; },
+  get pollen() { return pollen; }, get butterflies() { return butterflies; }, get flock() { return flock; },
   get pets() { return pets; },
   terrainHeight,
   enterThird, enterRoam,
@@ -518,6 +563,21 @@ window.__demo = {
     return !!pets[i];
   },
   allPets() { pets.forEach((p) => { p.visible = true; }); },
+  /* 把镜头框到某只鸟身上（造型确认用） */
+  frameBird(i, dist = 3.2, side = 1.2, below = 1.0, fov = 34) {
+    const b = flock[i];
+    if (!b) return null;
+    const p = b.position;
+    this.setView(
+      [p.x + side, p.y - below, p.z + dist],
+      [p.x, p.y, p.z],
+      fov,
+    );
+    return { name: b.userData.name, x: p.x, y: p.y, z: p.z, span: b.userData.span };
+  },
+  birdsLineup() {
+    return flock.map((b) => ({ name: b.userData.name, span: b.userData.span }));
+  },
   /* 定住朝向，拍造型用 */
   posePet(i, yaw) {
     const a = pets[i];

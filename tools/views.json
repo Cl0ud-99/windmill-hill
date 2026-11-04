@@ -1,6 +1,5 @@
 [
-  { "name": "farm-air", "view": { "pos": [20.0, 15.0, 52.0], "look": [0.0, 1.0, 34.0], "fov": 44 }, "wait": 900 },
-  { "name": "farm-corner", "view": { "pos": [13.0, 5.4, 43.5], "look": [-2.0, 1.4, 35.0], "fov": 46 }, "wait": 800 },
-  { "name": "dof-off", "eval": "window.__dofForce = false; window.__demo.shot(3, 0.5)", "wait": 700 },
-  { "name": "dof-on", "eval": "window.__dofForce = true", "wait": 700 }
+  { "name": "sky-1", "view": { "pos": [2.0, 9.0, 6.0], "look": [0.0, 24.0, 30.0], "fov": 50 }, "wait": 900 },
+  { "name": "sky-2", "wait": 800 },
+  { "name": "sky-3", "wait": 800 }
 ]
