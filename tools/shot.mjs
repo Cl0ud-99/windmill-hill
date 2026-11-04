@@ -29,7 +29,7 @@ page.on('console', (m) => {
 });
 page.on('pageerror', (e) => console.log('[pageerror]', String(e).slice(0, 800)));
 
-await page.goto('http://localhost:5173/', { waitUntil: 'networkidle2', timeout: 120000 });
+await page.goto('http://localhost:5173/' + (process.env.QS || ''), { waitUntil: 'networkidle2', timeout: 120000 });
 try {
   await page.waitForFunction('window.__ready === true', { timeout: 180000 });
 } catch (e) {
@@ -42,7 +42,10 @@ for (let i = 0; i < VIEWS.length; i++) {
   if (v.view) {
     await page.evaluate((vv) => window.__demo.setView(vv.pos, vv.look, vv.fov || 34), v.view);
   }
-  if (v.eval) await page.evaluate(v.eval);
+  if (v.eval) {
+    const r = await page.evaluate(v.eval);
+    if (r !== undefined) console.log('  eval →', JSON.stringify(r));
+  }
   await new Promise((r) => setTimeout(r, v.wait || 700));
   const file = `${OUT}/${v.name || 'view' + i}.png`;
   await page.screenshot({ path: file });

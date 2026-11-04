@@ -101,11 +101,13 @@ export function buildGrass(sampleSplat, opts = {}) {
     if (Math.hypot(x, z) < 4.3) continue;
     if (x > -13.5 && x < -3.4 && z > -2.2 && z < 5.4) continue;
     if (Math.hypot(x - 15.6, z - 11.6) < 3.0) continue;
+    if (opts.skip && opts.skip(x, z)) continue;
 
     // 成簇：有的地方茂密高挺，有的地方被啃短
     const clump = fbm(x * 0.085 + 13, z * 0.085 - 7, 3);
     const clumpK = 0.52 + clump * 1.05;
-    const s = (0.65 + rnd() * 0.85) * clumpK;
+    const gk = opts.grazeScale ? opts.grazeScale(x, z) : 1;
+    const s = (0.65 + rnd() * 0.85) * clumpK * gk;
     dummy.position.set(x, h - 0.02, z);
     dummy.rotation.set((rnd() - 0.5) * 0.12, rnd() * Math.PI * 2, (rnd() - 0.5) * 0.12);
     dummy.scale.set(s, s * (0.8 + rnd() * 0.6), s);
@@ -132,7 +134,7 @@ export function buildGrass(sampleSplat, opts = {}) {
 
 
 /* ---------------- 穗草（细茎 + 穗头） ---------------- */
-export function buildSeedGrass(sampleSplat, count = 9000, seed = 91, ao = null) {
+export function buildSeedGrass(sampleSplat, count = 9000, seed = 91, ao = null, opts = {}) {
   const rnd = mulberry32(seed);
 
   // 单株：细茎 + 顶端穗
@@ -186,6 +188,7 @@ export function buildSeedGrass(sampleSplat, count = 9000, seed = 91, ao = null) 
     if (nrm.y < 0.66) continue;
     if (Math.hypot(x, z) < 4.4) continue;
     if (x > -13.5 && x < -3.4 && z > -2.2 && z < 5.4) continue;
+    if (opts.skip && opts.skip(x, z)) continue;
 
     // 成片分布：只在部分区域长穗草
     const patch = fbm(x * 0.055 + 41, z * 0.055 - 17, 3);
@@ -486,7 +489,7 @@ export function buildReeds(count = 5200, seed = 55, ao = null) {
 }
 
 /* ---------------- 野花 ---------------- */
-export function buildWildflowers(sampleSplat, count = 14000, seed = 21, ao = null) {
+export function buildWildflowers(sampleSplat, count = 14000, seed = 21, ao = null, opts = {}) {
   const rnd = mulberry32(seed);
   const parts = [];
   // 花头：小多面体，任何角度都读作一点颜色
@@ -529,6 +532,7 @@ export function buildWildflowers(sampleSplat, count = 14000, seed = 21, ao = nul
     if (h < -0.3) continue;
     const sp = sampleSplat(x, z);
     if (sp[1] > 0.5 || sp[2] > 0.5) continue;
+    if (opts.skip && opts.skip(x, z)) continue;
     // 成片分布
     const patch = fbm(x * 0.06 + 21, z * 0.06 + 5, 3);
     if (patch < 0.52 && rnd() > 0.15) continue;

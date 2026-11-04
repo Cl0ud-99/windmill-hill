@@ -41,6 +41,56 @@ export const WALL_PTS = [
 ];
 export const GATE = { x: 12.6, z: 27.2 };
 
+/* ---- 牧场：石墙外草甸上的一块围场 ---- */
+export const PASTURE = [
+  [-12.0, 31.6], [-5.0, 30.6], [3.0, 30.4], [10.0, 31.6],
+  [11.4, 34.6], [10.9, 38.2], [7.0, 40.6], [0.0, 41.2],
+  [-6.5, 40.6], [-11.4, 38.2], [-12.6, 34.6],
+];
+
+/* 射线法判断点是否在多边形内 */
+export function inPasture(x, z, pad = 0) {
+  const pts = PASTURE;
+  let inside = false;
+  for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) {
+    const xi = pts[i][0], zi = pts[i][1];
+    const xj = pts[j][0], zj = pts[j][1];
+    if ((zi > z) !== (zj > z) && x < ((xj - xi) * (z - zi)) / (zj - zi) + xi) {
+      inside = !inside;
+    }
+  }
+  if (inside) return true;
+  if (pad <= 0) return false;
+  // 边界外 pad 米以内也算「里面」，用来做过渡
+  for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) {
+    const ax = pts[j][0], az = pts[j][1];
+    const bx = pts[i][0], bz = pts[i][1];
+    const dx = bx - ax, dz = bz - az;
+    const l2 = dx * dx + dz * dz || 1;
+    let t = ((x - ax) * dx + (z - az) * dz) / l2;
+    t = clamp(t, 0, 1);
+    if (Math.hypot(x - (ax + dx * t), z - (az + dz * t)) < pad) return true;
+  }
+  return false;
+}
+
+/* 点到牧场边界的距离：内部为正，外部为负 */
+export function pastureClearance(x, z) {
+  const pts = PASTURE;
+  let d = 1e9;
+  for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) {
+    const ax = pts[j][0], az = pts[j][1];
+    const bx = pts[i][0], bz = pts[i][1];
+    const dx = bx - ax, dz = bz - az;
+    const l2 = dx * dx + dz * dz || 1;
+    let t = ((x - ax) * dx + (z - az) * dz) / l2;
+    t = clamp(t, 0, 1);
+    const dd = Math.hypot(x - (ax + dx * t), z - (az + dz * t));
+    if (dd < d) d = dd;
+  }
+  return inPasture(x, z) ? d : -d;
+}
+
 /* ---- 建筑台基 ---- */
 const PADS = [
   { x: 0.0, z: 0.0, r: 6.4, f: 9.5, y: 7.30 },

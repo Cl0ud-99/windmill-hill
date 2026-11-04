@@ -2,7 +2,9 @@ import * as THREE from 'three';
 import { shared, setTime } from './core/materials.js';
 import { buildSky } from './world/sky.js';
 import { buildTerrain, buildSplatMap, buildFarHills, buildHeightTexture } from './world/terrain.js';
-import { riverCenterZ, riverHalfWidth, terrainHeight, WATER_Y } from './world/layout.js';
+import {
+  riverCenterZ, riverHalfWidth, terrainHeight, WATER_Y, PASTURE, inPasture, pastureClearance,
+} from './world/layout.js';
 import { initMatlib } from './world/matlib.js';
 import { buildWindmill, buildMillHouse, buildSmallWindmill } from './world/buildings.js';
 import { buildPost } from './post/post.js';
@@ -18,6 +20,11 @@ import { buildWater } from './world/water.js';
 import { RoamController, Cinematic, SHOTS } from './camera/controllers.js';
 import { ThirdPersonController } from './camera/thirdperson.js';
 import { buildAvatar } from './character/avatar.js';
+import {
+  buildCartoonCat, buildCartoonDog, buildCartoonChicken, buildCartoonDuck,
+  buildCartoonCow, buildCartoonSheep,
+} from './character/animals.js';
+import { buildPasture, buildHayBales } from './world/pasture.js';
 import { UI } from './ui.js';
 import { Ambience } from './audio.js';
 
@@ -36,6 +43,8 @@ renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFShadowMap;
 
 const scene = new THREE.Scene();
+const veg = new THREE.Group();
+scene.add(veg);
 const camera = new THREE.PerspectiveCamera(34, window.innerWidth / window.innerHeight, 0.15, 8000);
 camera.position.set(26, 6, 74);
 camera.lookAt(0, 11, 0);
@@ -48,6 +57,7 @@ let mill, house, smallMill, water, sky, terrain, grass, trees, wall, scenery, vi
 let avatar = null;
 let third = null;
 let pollen = null, butterflies = null, birds = null;
+let pets = [];
 
 const frame = () => new Promise((r) => requestAnimationFrame(() => setTimeout(r, 0)));
 
@@ -194,23 +204,29 @@ async function init() {
   terrain.material.uniforms.uAO.value = ao.texture;
   terrain.material.uniforms.uAORegion.value.set(AO_REGION.cx, AO_REGION.cz, AO_REGION.size, 0);
 
-  /* 植被 */
+  /* 植被（统一挂在 veg 组下，预览模型时可以整体隐藏） */
   ui.progress(0.74, '正在长草…');
   await frame();
-  grass = buildGrass(sampleSplat, { count: 62000, height: 0.38, blades: 6, seed: 7, ao: ao.sample });
-  scene.add(grass);
-  scene.add(buildGrass(sampleSplat, {
-    count: 26000, radius: 150, height: 0.44, blades: 5, seed: 19, cx: 8, cz: 26, ao: ao.sample,
+  // 牧场里被啃短：草矮一半，穗草和野花基本没有
+  const grazed = (x, z) => (inPasture(x, z) ? 0.50 : 1);
+  const inYard = (x, z) => inPasture(x, z, 0.4);
+  grass = buildGrass(sampleSplat, {
+    count: 62000, height: 0.38, blades: 6, seed: 7, ao: ao.sample, grazeScale: grazed,
+  });
+  veg.add(grass);
+  veg.add(buildGrass(sampleSplat, {
+    count: 26000, radius: 150, height: 0.44, blades: 5, seed: 19, cx: 8, cz: 26,
+    ao: ao.sample, grazeScale: grazed,
   }));
-  scene.add(buildGrass(sampleSplat, {
+  veg.add(buildGrass(sampleSplat, {
     count: 7000, radius: 18, cx: 40, cz: 62, height: 0.85, blades: 6, seed: 33, tall: true, ao: ao.sample,
   }));
-  scene.add(buildWildflowers(sampleSplat, 7500, 21, ao.sample));
-  scene.add(buildSeedGrass(sampleSplat, 5000, 91, ao.sample));
+  veg.add(buildWildflowers(sampleSplat, 7500, 21, ao.sample, { skip: inYard }));
+  veg.add(buildSeedGrass(sampleSplat, 5000, 91, ao.sample, { skip: inYard }));
   ui.progress(0.86, '正在开花…');
   await frame();
 
-  scene.add(buildHydrangeas([
+  veg.add(buildHydrangeas([
     { x: 12.0, z: 13.4, scale: 1.1, hue: 0.63 },
     { x: 13.4, z: 14.6, scale: 0.9, hue: 0.68 },
     { x: 18.8, z: 13.2, scale: 1.05, hue: 0.60 },
@@ -223,7 +239,7 @@ async function init() {
     { x: 5.6, z: 8.8, scale: 0.8, hue: 0.61 },
   ]));
   scene.add(buildRiverStones(1200));
-  scene.add(buildReeds(5200, 55, ao.sample));
+  veg.add(buildReeds(5200, 55, ao.sample));
   ui.progress(0.92, '正在引水入河…');
   await frame();
 
@@ -251,6 +267,59 @@ async function init() {
   third.obstacles = treeList.map((t) => ({
     x: t.x, z: t.z, r: 0.55 * (t.scale ?? 1),
   }));
+
+  // 动物预览（仅 ?pets=1 时出现，确认造型后才放进正式场景）
+  if (new URLSearchParams(location.search).get('pets') === '1') {
+    veg.visible = false;   // 预览时清掉植被，方便看造型
+    const px = 0.0, pz = 5.2;   // 风车台基上，地面是平的
+    const specs = [
+      ['cat', buildCartoonCat, -1.30, 0.12],
+      ['dog', buildCartoonDog, -0.44, -0.08],
+      ['chicken', buildCartoonChicken, 0.44, 0.16],
+      ['duck', buildCartoonDuck, 1.30, -0.14],
+    ];
+    for (const [name, build, dx, ry] of specs) {
+      const a = build({ wander: false });
+      const x = px + dx;
+      a.position.set(x, terrainHeight(x, pz), pz);
+      a.rotation.y = ry;
+      a.userData.home = { x, z: pz };
+      a.userData.ground = terrainHeight;
+      a.userData.name = name;
+      a.userData.height = a.userData.height || 0.5;
+      scene.add(a);
+      pets.push(a);
+    }
+  }
+
+  // 牧场与牲畜（默认开启；?farm=0 可关掉）
+  if (new URLSearchParams(location.search).get('farm') !== '0') {
+    scene.add(buildPasture(PASTURE, { gapAt: [11.4, 33.2], gapW: 1.4 }));
+    scene.add(buildHayBales(-8.6, 32.9, 0.35));
+
+    const spawn = (build, name, x, z, ry, r) => {
+      const a = build({ radius: r });
+      a.userData.name = name;
+      a.position.set(x, terrainHeight(x, z), z);
+      a.rotation.y = ry;
+      a.userData.home = { x, z };
+      a.userData.ground = terrainHeight;
+      a.userData.radius = r;
+      // 不许越过围栏
+      a.userData.canStand = (px, pz) => pastureClearance(px, pz) > 0.85;
+      scene.add(a);
+      pets.push(a);
+      return a;
+    };
+    // 两头牛
+    spawn(buildCartoonCow, 'cow-a', -3.0, 33.6, 0.75, 3.4);
+    spawn(buildCartoonCow, 'cow-b', 5.0, 36.4, -1.05, 3.0);
+    // 四只羊，聚在西南角
+    spawn(buildCartoonSheep, 'sheep-a', -8.4, 33.4, 1.9, 1.9);
+    spawn(buildCartoonSheep, 'sheep-b', -6.6, 34.2, 2.4, 1.7);
+    spawn(buildCartoonSheep, 'sheep-c', -4.8, 33.3, 1.4, 1.8);
+    spawn(buildCartoonSheep, 'sheep-d', -7.6, 35.4, 2.1, 1.6);
+  }
 
   post = buildPost(renderer, scene, camera);
   ui.progress(1.0, '完成');
@@ -368,6 +437,7 @@ function tick() {
   if (pollen) pollen.material.uniforms.uCam.value.copy(camera.position);
   if (butterflies) butterflies.userData.update(dt);
   if (birds) birds.userData.update(dt);
+  for (const p of pets) if (p.userData.update) p.userData.update(dt, t);
 
   if (post && water) {
     _sunWorld.copy(camera.position).addScaledVector(shared.uSunDir.value, 900);
@@ -422,11 +492,61 @@ window.__demo = {
   get wall() { return wall; }, get scenery() { return scenery; }, get village() { return village; },
   get avatar() { return avatar; }, get third() { return third; },
   get pollen() { return pollen; }, get butterflies() { return butterflies; }, get birds() { return birds; },
+  get pets() { return pets; },
+  terrainHeight,
   enterThird, enterRoam,
+  /* 自动把镜头框到某只动物身上（预览造型用） */
+  framePet(i, dist = 1.15, side = 0.5, fov = 30) {
+    const a = pets[i];
+    if (!a) return null;
+    const h = a.userData.height || 0.5;
+    this.setView(
+      [a.position.x + side, a.position.y + h * 0.66, a.position.z + dist],
+      [a.position.x, a.position.y + h * 0.48, a.position.z],
+      fov,
+    );
+    return { name: a.userData.name, x: a.position.x, y: a.position.y, z: a.position.z, h };
+  },
+  /* 摆好一排，返回地面高度，方便写死机位 */
+  petsLineup() {
+    return pets.map((a) => ({
+      name: a.userData.name, x: +a.position.x.toFixed(2),
+      y: +a.position.y.toFixed(2), z: +a.position.z.toFixed(2),
+    }));
+  },
+  /* 单只预览：其余藏起来，避免挡镜头 */
+  onlyPet(i) {
+    pets.forEach((p, k) => { p.visible = k === i; });
+    return !!pets[i];
+  },
+  allPets() { pets.forEach((p) => { p.visible = true; }); },
+  /* 定住朝向，拍造型用 */
+  posePet(i, yaw) {
+    const a = pets[i];
+    if (!a) return null;
+    const st = a.userData.st;
+    st.mode = 'idle';
+    st.timer = 1e9;
+    st.gait = 0;
+    st.yaw = yaw;
+    a.rotation.y = yaw;
+    return yaw;
+  },
+  /* 强制走一段，用来验证步态 */
+  petWalk(i, dx = 0.9, dz = 0.6) {
+    const a = pets[i];
+    if (!a) return null;
+    const st = a.userData.st;
+    st.tx = a.position.x + dx;
+    st.tz = a.position.z + dz;
+    st.mode = 'walk';
+    st.timer = 9;
+    return { tx: st.tx, tz: st.tz };
+  },
   setView(p, l, fov = 34) {
     mode = 'debug';
     ui.titlecard?.classList.remove('show');
-    if (ui.titlecard) ui.titlecard.style.display = 'none';
+    if (ui.titlecard) ui.titlecard.style.setProperty('display', 'none', 'important');
     ui.hideLoader();
     roam.enabled = false;
     cine.stop();
@@ -440,7 +560,7 @@ window.__demo = {
   shot(i, t = 0) {
     mode = 'debug';
     ui.titlecard?.classList.remove('show');
-    if (ui.titlecard) ui.titlecard.style.display = 'none';
+    if (ui.titlecard) ui.titlecard.style.setProperty('display', 'none', 'important');
     ui.hideLoader();
     roam.enabled = false;
     cine.jump(i, t);
