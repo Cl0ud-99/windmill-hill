@@ -195,9 +195,10 @@ async function init() {
       // 三段密度：内圈满、中圈砍一半、外圈砍到 1/4。
       // 每一档都是逐棵独立掷骰子，所以砍出来是斑驳的疏密，
       // 不是整体均匀变稀；档与档之间用 smoothstep 渐变，避免出现同心圆边界
-      // 中圈再砍一半后，中圈和外圈都是 1/4，200m 以外密度一致
-      const mid = smoothstep(105, 200, r);
-      const keep = 1 - 0.75 * mid;                // 1 → 0.25
+      // 中圈全砍空，外圈只留 1/8：105m 内满密度 → 210m 处归零 → 330m 处回到 0.125
+      const mid = smoothstep(105, 210, r);
+      const far = smoothstep(230, 330, r);
+      const keep = (1 - mid) + far * 0.125;
       if (rnd() > keep) continue;
       if (inRiverChannel(x, z, 1.5)) continue;
       if (inPasture(x, z, 2.5)) continue;
