@@ -4,6 +4,7 @@ import { buildSky } from './world/sky.js';
 import { buildTerrain, buildSplatMap, buildFarHills, buildHeightTexture } from './world/terrain.js';
 import {
   riverCenterZ, riverHalfWidth, terrainHeight, WATER_Y, PASTURE, inPasture, pastureClearance,
+  HALF, isUnderwater,
 } from './world/layout.js';
 import { initMatlib } from './world/matlib.js';
 import { buildWindmill, buildMillHouse, buildSmallWindmill } from './world/buildings.js';
@@ -157,6 +158,7 @@ async function init() {
     // 成簇分布：林带 + 空地，避免均匀撒点
     let s = 12345;
     const rnd = () => { s = (s * 1664525 + 1013904223) % 4294967296; return s / 4294967296; };
+    // 近景林带：全细节（树干骨架 + 25 团圆树冠 + 150 张叶片卡片）
     const clusters = [
       [-72, -34, 30, 26], [46, -62, 34, 22], [96, 34, 26, 20], [-104, 62, 34, 24],
       [74, 96, 30, 22], [-44, 104, 28, 18], [128, -18, 30, 20], [-128, -76, 34, 22],
@@ -164,34 +166,44 @@ async function init() {
       // 西北坡原来空着一大片，补几片林子，远看才不是一块光板
       [-152, -18, 34, 26], [-96, -112, 32, 24], [-28, -146, 30, 20],
       [56, -142, 30, 18], [-178, 76, 26, 14], [-64, -186, 30, 16],
-      // 场地扩到 840 之后，外圈也要有林子，不然一眼就看出中心是个岛
-      [-250, -60, 46, 30], [-210, 150, 42, 26], [-300, 40, 44, 26],
-      [230, -190, 46, 28], [300, -40, 44, 26], [180, 200, 44, 26],
-      [40, 260, 46, 26], [-140, 270, 42, 24], [280, 150, 42, 24],
-      [-320, -170, 40, 20], [120, -280, 44, 24], [-40, -300, 42, 22],
     ];
+    const push = (x, z, far) => {
+      if (Math.abs(x) > HALF - 22 || Math.abs(z) > HALF - 22) return;
+      if (isUnderwater(x, z)) return;
+      treeList.push({
+        x, z,
+        type: far ? (rnd() > 0.35 ? 0 : 1) : (rnd() > 0.4 ? 0 : 1),
+        scale: (far ? 0.9 : 0.8) + rnd() * 0.7,
+        rot: rnd() * 6.28,
+        stretch: 0.88 + rnd() * 0.3,
+        far,
+      });
+    };
     for (const [cx, cz, rad, n] of clusters) {
       for (let i = 0; i < n; i++) {
         const a = rnd() * Math.PI * 2;
         const r = Math.pow(rnd(), 0.65) * rad;
-        const x = cx + Math.cos(a) * r, z = cz + Math.sin(a) * r;
-        if (Math.abs(x) > 195 || Math.abs(z) > 195) continue;
-        treeList.push({
-          x, z, type: rnd() > 0.4 ? 0 : 1,
-          scale: 0.8 + rnd() * 0.7, rot: rnd() * 6.28,
-          stretch: 0.88 + rnd() * 0.3,
-        });
+        push(cx + Math.cos(a) * r, cz + Math.sin(a) * r, false);
       }
     }
-    // 零散孤树
-    for (let i = 0; i < 150; i++) {
+    // 外圈林带：190–380m 环带里程序化撒，全部用低模树
+    for (let i = 0; i < 58; i++) {
       const a = rnd() * Math.PI * 2;
-      const r = 58 + rnd() * 300;
-      treeList.push({
-        x: 6 + Math.cos(a) * r, z: 26 + Math.sin(a) * r,
-        type: rnd() > 0.5 ? 0 : 1, scale: 0.7 + rnd() * 0.6,
-        rot: rnd() * 6.28, stretch: 0.9 + rnd() * 0.3,
-      });
+      const rr = 190 + Math.sqrt(rnd()) * 190;
+      const cx = Math.cos(a) * rr, cz = Math.sin(a) * rr + 20;
+      const rad = 24 + rnd() * 30;
+      const n = 20 + Math.floor(rnd() * 26);
+      for (let k = 0; k < n; k++) {
+        const a2 = rnd() * Math.PI * 2;
+        const r2 = Math.pow(rnd(), 0.65) * rad;
+        push(cx + Math.cos(a2) * r2, cz + Math.sin(a2) * r2, true);
+      }
+    }
+    // 零散孤树：近处全细节，远处低模
+    for (let i = 0; i < 340; i++) {
+      const a = rnd() * Math.PI * 2;
+      const r = 58 + rnd() * 320;
+      push(6 + Math.cos(a) * r, 26 + Math.sin(a) * r, r > 190);
     }
   }
   trees = buildTrees(sampleSplat, treeList);

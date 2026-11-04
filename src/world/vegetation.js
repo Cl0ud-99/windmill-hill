@@ -282,7 +282,7 @@ function leafCards(rnd, cy, cr, count = 120) {
   return mergeGeos(parts);
 }
 
-export function treeGeometry(seed = 1, type = 0) {
+export function treeGeometry(seed = 1, type = 0, far = false) {
   const rnd = mulberry32(seed);
   const cfg = [
     { th: 4.8, tr: 0.36, cy: 6.4, cr: 4.0, lobes: 10 },   // 阔叶大树
@@ -291,6 +291,27 @@ export function treeGeometry(seed = 1, type = 0) {
     { th: 1.7, tr: 0.13, cy: 2.0, cr: 1.5, lobes: 6 },    // 灌木
   ][type];
   const { th, tr, cy, cr, lobes } = cfg;
+
+  /* ---- 远景低模：一根杆 + 五团圆，不生成叶片卡片 ----
+     单棵从 ~8500 面降到 ~500 面，外圈才敢种上千棵 */
+  if (far) {
+    const trunk = mergeGeos([branchGeo(
+      new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, th * 0.78, 0), tr, tr * 0.55, 5,
+    )]);
+    const blobs = [];
+    const cD = new THREE.Color(0.40, 0.50, 0.32);
+    const cM = new THREE.Color(0.74, 0.83, 0.58);
+    for (let i = 0; i < 5; i++) {
+      const a = (i / 5) * Math.PI * 2 + rnd();
+      const rr = cr * (0.16 + rnd() * 0.34);
+      const g = new THREE.SphereGeometry(cr * (0.54 + rnd() * 0.18), 8, 6);
+      g.scale(1, 0.86, 1);
+      g.translate(Math.cos(a) * rr, cy + (rnd() - 0.5) * cr * 0.28, Math.sin(a) * rr);
+      paintGeo(g, i % 2 ? cM : cD);
+      blobs.push(g);
+    }
+    return { trunk, canopy: mergeGeos(blobs), cards: null, height: cy + cr };
+  }
 
   /* ---- 主干（带弯曲） ---- */
   const trunkParts = [];
@@ -402,7 +423,8 @@ export function buildTrees(sampleSplat, placements) {
   const byType = new Map();
 
   for (const p of placements) {
-    const key = p.type ?? 0;
+    // key = 类型 + 10 表示「远景低模」
+    const key = (p.type ?? 0) + (p.far ? 10 : 0);
     if (!byType.has(key)) byType.set(key, []);
     byType.get(key).push(p);
   }
@@ -410,16 +432,23 @@ export function buildTrees(sampleSplat, placements) {
   const dummy = new THREE.Object3D();
   const col = new THREE.Color();
 
-  for (const [type, list] of byType) {
-    const geo = treeGeometry(11 + type * 7, type);
+  for (const [key, list] of byType) {
+    const type = key % 10;
+    const far = key >= 10;
+    const geo = treeGeometry(11 + type * 7, type, far);
     const trunkMesh = new THREE.InstancedMesh(geo.trunk, MAT.bark, list.length);
     const canopyMesh = new THREE.InstancedMesh(geo.canopy, MAT.leaf, list.length);
-    const cardMesh = new THREE.InstancedMesh(geo.cards, MAT.leafCard, list.length);
+    const cardMesh = geo.cards
+      ? new THREE.InstancedMesh(geo.cards, MAT.leafCard, list.length)
+      : null;
     trunkMesh.castShadow = trunkMesh.receiveShadow = true;
     canopyMesh.castShadow = canopyMesh.receiveShadow = true;
-    cardMesh.castShadow = false;
-    cardMesh.receiveShadow = true;
-    trunkMesh.frustumCulled = canopyMesh.frustumCulled = cardMesh.frustumCulled = false;
+    trunkMesh.frustumCulled = canopyMesh.frustumCulled = false;
+    if (cardMesh) {
+      cardMesh.castShadow = false;
+      cardMesh.receiveShadow = true;
+      cardMesh.frustumCulled = false;
+    }
 
     list.forEach((p, i) => {
       const y = terrainHeight(p.x, p.z);
@@ -430,17 +459,22 @@ export function buildTrees(sampleSplat, placements) {
       dummy.updateMatrix();
       trunkMesh.setMatrixAt(i, dummy.matrix);
       canopyMesh.setMatrixAt(i, dummy.matrix);
-      cardMesh.setMatrixAt(i, dummy.matrix);
       col.setHSL(0.19 + Math.random() * 0.085, 0.30 + Math.random() * 0.26, 0.30 + Math.random() * 0.30);
       canopyMesh.setColorAt(i, col);
-      cardMesh.setColorAt(i, col);
+      if (cardMesh) {
+        cardMesh.setMatrixAt(i, dummy.matrix);
+        cardMesh.setColorAt(i, col);
+      }
     });
     trunkMesh.instanceMatrix.needsUpdate = true;
     canopyMesh.instanceMatrix.needsUpdate = true;
-    cardMesh.instanceMatrix.needsUpdate = true;
     if (canopyMesh.instanceColor) canopyMesh.instanceColor.needsUpdate = true;
-    if (cardMesh.instanceColor) cardMesh.instanceColor.needsUpdate = true;
-    group.add(trunkMesh, canopyMesh, cardMesh);
+    if (cardMesh) {
+      cardMesh.instanceMatrix.needsUpdate = true;
+      if (cardMesh.instanceColor) cardMesh.instanceColor.needsUpdate = true;
+    }
+    group.add(trunkMesh, canopyMesh);
+    if (cardMesh) group.add(cardMesh);
   }
   return group;
 }
