@@ -355,30 +355,30 @@ export function placeVillage(scene) {
 
   // ---- 谷仓周边杂物 ----
   const ladder = buildLadder(3.4, 0.55);
-  ladder.position.set(terrainHeight(25.2, 41.0), terrainHeight(25.2, 41.0) + 0.0, 41.0);
+  ladder.position.set(25.2, terrainHeight(25.2, 41.0), 41.0);
   ladder.rotation.set(0, -0.42, 0.16);
   ladder.position.y = terrainHeight(25.2, 41.0);
   group.add(ladder);
 
   const wp = buildWoodpile(2.2, 1.0);
-  wp.position.set(terrainHeight(34.2, 40.0), terrainHeight(34.2, 40.0), 40.0);
+  wp.position.set(34.2, terrainHeight(34.2, 40.0), 40.0);
   wp.rotation.y = -0.42;
   group.add(wp);
 
   for (const [x, z, r] of [[27.6, 43.2, 0.4], [28.4, 43.8, 1.2], [26.9, 44.1, 2.1]]) {
     const sk = buildSack();
-    sk.position.set(terrainHeight(x, z), terrainHeight(x, z), z);
+    sk.position.set(x, terrainHeight(x, z), z);
     sk.rotation.y = r;
     group.add(sk);
   }
 
   // ---- 小屋周边 ----
   const wp2 = buildWoodpile(1.5, 0.8);
-  wp2.position.set(terrainHeight(-16.6, 35.6), terrainHeight(-16.6, 35.6), 35.6);
+  wp2.position.set(-16.6, terrainHeight(-16.6, 35.6), 35.6);
   wp2.rotation.y = 0.52;
   group.add(wp2);
   const sk2 = buildSack();
-  sk2.position.set(terrainHeight(-22.6, 35.2), terrainHeight(-22.6, 35.2), 35.2);
+  sk2.position.set(-22.6, terrainHeight(-22.6, 35.2), 35.2);
   sk2.rotation.y = 0.8;
   group.add(sk2);
 
