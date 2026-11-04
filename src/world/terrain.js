@@ -75,6 +75,7 @@ const TERRAIN_FRAG = /* glsl */`
 precision highp float;
 
 uniform sampler2D uSplat;
+uniform vec2 uWorldMap;   // (半边长, 边长)
 uniform sampler2D uDirt;
 uniform sampler2D uAO;
 uniform vec4 uAORegion;  // cx, cz, size, -
@@ -94,7 +95,7 @@ varying float vHeight;
 ${LIGHT_GLSL}
 
 void main() {
-  vec2 sp = vec2( ( vWorld.x + 210.0 ) / 420.0, ( vWorld.z + 210.0 ) / 420.0 );
+  vec2 sp = ( vWorld.xz + uWorldMap.x ) / uWorldMap.y;
   vec3 splat = texture2D( uSplat, sp ).rgb;
 
   vec3 N = normalize( vNormalW );
@@ -349,7 +350,7 @@ const WHITE_TEX = new THREE.DataTexture(new Uint8Array([255,255,255,255]), 1, 1)
 WHITE_TEX.needsUpdate = true;
 
 export function buildTerrain(splatTex, aoTex) {
-  const seg = 460;
+  const seg = 720;
   const geo = new THREE.PlaneGeometry(WORLD, WORLD, seg, seg);
   geo.rotateX(-Math.PI / 2);
   const pos = geo.attributes.position;
@@ -368,6 +369,7 @@ export function buildTerrain(splatTex, aoTex) {
     fragmentShader: TERRAIN_FRAG,
     uniforms: Object.assign({}, THREE.UniformsLib.lights, shared, {
       uSplat: { value: splatTex },
+      uWorldMap: { value: new THREE.Vector2(HALF, WORLD) },
       uDirt: { value: dirt },
       uAO: { value: aoTex || WHITE_TEX },
       uAORegion: { value: new THREE.Vector4(2, 34, 220, 0) },
@@ -391,9 +393,9 @@ export function buildTerrain(splatTex, aoTex) {
 export function buildFarHills() {
   const group = new THREE.Group();
   const layers = [
-    { r0: 150, r1: 400, h: 32, color: 0x6f8a63, seed: 1.3, seg: 220 },
-    { r0: 360, r1: 680, h: 62, color: 0x7e97a0, seed: 4.7, seg: 180 },
-    { r0: 620, r1: 1150, h: 96, color: 0x9db2b8, seed: 9.1, seg: 150 },
+    { r0: 400, r1: 760, h: 42, color: 0x6f8a63, seed: 1.3, seg: 220 },
+    { r0: 720, r1: 1120, h: 74, color: 0x7e97a0, seed: 4.7, seg: 180 },
+    { r0: 1060, r1: 1700, h: 118, color: 0x9db2b8, seed: 9.1, seg: 150 },
   ];
   for (const L of layers) {
     const seg = L.seg, rings = 7;

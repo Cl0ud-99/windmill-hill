@@ -5,6 +5,7 @@ import { MAT } from './matlib.js';
 import {
   terrainHeight, terrainNormal, isUnderwater, nearestOnPolyline,
   PATH_MAIN, PATH_GARDEN, STREAM_PTS, riverCenterZ, riverHalfWidth, WATER_Y,
+  WORLD, HALF,
 } from './layout.js';
 import { mulberry32, fbm, smoothstep, clamp } from '../core/noise.js';
 
@@ -12,7 +13,7 @@ import { mulberry32, fbm, smoothstep, clamp } from '../core/noise.js';
 export function makeSplatSampler(splat, size) {
   const d = splat.data;
   return (x, z) => {
-    const u = clamp((x + 210) / 420), v = clamp((z + 210) / 420);
+    const u = clamp((x + HALF) / WORLD), v = clamp((z + HALF) / WORLD);
     const ix = Math.min(size - 1, Math.floor(u * size));
     const iy = Math.min(size - 1, Math.floor(v * size));
     const i = (iy * size + ix) * 4;

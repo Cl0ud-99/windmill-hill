@@ -34,6 +34,7 @@ precision highp float;
 
 uniform sampler2D uNormal;
 uniform sampler2D uHeight;
+uniform vec2 uWorldMap;   // (半边长, 边长)
 uniform sampler2D uReflect;
 uniform float uTime;
 uniform float uWaterY;
@@ -86,7 +87,7 @@ void main() {
 
   float depth = 0.9;
   if ( uIsStream < 0.5 ) {
-    vec2 huv = vec2( ( vWorld.x + 210.0 ) / 420.0, ( vWorld.z + 210.0 ) / 420.0 );
+    vec2 huv = ( vWorld.xz + uWorldMap.x ) / uWorldMap.y;
     vec4 hs = texture2D( uHeight, huv );
     float hv = ( hs.r * 255.0 * 256.0 + hs.g * 255.0 ) / 65535.0;
     float bed = hv * 40.0 - 8.0;
@@ -271,6 +272,7 @@ export function buildWater(heightTex) {
     uniforms: {
       uNormal: { value: normalTex },
       uHeight: { value: heightTex },
+      uWorldMap: { value: new THREE.Vector2(HALF, WORLD) },
       uReflect: { value: reflection.rt.texture },
       uReflectMatrix: { value: reflection.textureMatrix },
       uTime: shared.uTime,

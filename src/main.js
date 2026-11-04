@@ -164,6 +164,11 @@ async function init() {
       // 西北坡原来空着一大片，补几片林子，远看才不是一块光板
       [-152, -18, 34, 26], [-96, -112, 32, 24], [-28, -146, 30, 20],
       [56, -142, 30, 18], [-178, 76, 26, 14], [-64, -186, 30, 16],
+      // 场地扩到 840 之后，外圈也要有林子，不然一眼就看出中心是个岛
+      [-250, -60, 46, 30], [-210, 150, 42, 26], [-300, 40, 44, 26],
+      [230, -190, 46, 28], [300, -40, 44, 26], [180, 200, 44, 26],
+      [40, 260, 46, 26], [-140, 270, 42, 24], [280, 150, 42, 24],
+      [-320, -170, 40, 20], [120, -280, 44, 24], [-40, -300, 42, 22],
     ];
     for (const [cx, cz, rad, n] of clusters) {
       for (let i = 0; i < n; i++) {
@@ -179,9 +184,9 @@ async function init() {
       }
     }
     // 零散孤树
-    for (let i = 0; i < 68; i++) {
+    for (let i = 0; i < 150; i++) {
       const a = rnd() * Math.PI * 2;
-      const r = 58 + rnd() * 132;
+      const r = 58 + rnd() * 300;
       treeList.push({
         x: 6 + Math.cos(a) * r, z: 26 + Math.sin(a) * r,
         type: rnd() > 0.5 ? 0 : 1, scale: 0.7 + rnd() * 0.6,
@@ -222,8 +227,19 @@ async function init() {
     count: 62000, height: 0.38, blades: 6, seed: 7, ao: ao.sample, grazeScale: grazed,
   });
   veg.add(grass);
+  // 中景：保持核心区的密度，别因为扩场把身边踩稀了
   veg.add(buildGrass(sampleSplat, {
-    count: 26000, radius: 150, height: 0.44, blades: 5, seed: 19, cx: 8, cz: 26,
+    count: 28000, radius: 150, height: 0.44, blades: 5, seed: 19, cx: 8, cz: 26,
+    ao: ao.sample, grazeScale: grazed,
+  }));
+  // 外圈：一路铺到 300m
+  veg.add(buildGrass(sampleSplat, {
+    count: 38000, radius: 300, height: 0.46, blades: 4, seed: 47, cx: 0, cz: 20,
+    ao: ao.sample, grazeScale: grazed,
+  }));
+  // 最外圈：铺满整个场地，稀一点，远看只是给地面加一层绒
+  veg.add(buildGrass(sampleSplat, {
+    count: 18000, radius: 420, height: 0.52, blades: 3, seed: 63, cx: 0, cz: 10,
     ao: ao.sample, grazeScale: grazed,
   }));
   veg.add(buildGrass(sampleSplat, {

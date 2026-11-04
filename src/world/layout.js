@@ -4,7 +4,7 @@ import { fbm, smoothstep, mix, clamp } from '../core/noise.js';
 /* ============================================================
    世界坐标与地形定义（单位：米）
    ============================================================ */
-export const WORLD = 420;           // 地形边长
+export const WORLD = 840;           // 地形边长（2026-11 扩大一倍）
 export const HALF = WORLD / 2;
 export const WATER_Y = -0.55;
 
