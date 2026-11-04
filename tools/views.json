@@ -1,5 +1,5 @@
 [
-  { "name": "chk", "eval": "(() => { const t = window.__demo.trees; let n = 0, far = 0; for (const m of t.children) { if (m.isInstancedMesh) n += m.count; } return { meshes: t.children.length, instances: n }; })()", "wait": 400 },
-  { "name": "final-main", "view": { "pos": [26.0, 6.0, 74.0], "look": [0.0, 11.0, 0.0], "fov": 34 }, "wait": 900 },
-  { "name": "final-mid", "view": { "pos": [90.0, 30.0, 170.0], "look": [0.0, 8.0, 20.0], "fov": 40 }, "wait": 900 }
+  { "name": "gap-b", "view": { "pos": [90.0, 90.0, 150.0], "look": [-50.0, 6.0, 20.0], "fov": 44 }, "wait": 900 },
+  { "name": "final-mid", "view": { "pos": [90.0, 30.0, 170.0], "look": [0.0, 8.0, 20.0], "fov": 40 }, "wait": 900 },
+  { "name": "final-main", "view": { "pos": [26.0, 6.0, 74.0], "look": [0.0, 11.0, 0.0], "fov": 34 }, "wait": 900 }
 ]

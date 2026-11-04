@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { shared, setTime } from './core/materials.js';
+import { fbm } from './core/noise.js';
 import { buildSky } from './world/sky.js';
 import { buildTerrain, buildSplatMap, buildFarHills, buildHeightTexture } from './world/terrain.js';
 import {
@@ -155,55 +156,49 @@ async function init() {
     { x: -46, z: 16, type: 1, scale: 1.1, rot: 2.4 },
   ];
   {
-    // 成簇分布：林带 + 空地，避免均匀撒点
     let s = 12345;
     const rnd = () => { s = (s * 1664525 + 1013904223) % 4294967296; return s / 4294967296; };
-    // 近景林带：全细节（树干骨架 + 25 团圆树冠 + 150 张叶片卡片）
-    const clusters = [
-      [-72, -34, 30, 26], [46, -62, 34, 22], [96, 34, 26, 20], [-104, 62, 34, 24],
-      [74, 96, 30, 22], [-44, 104, 28, 18], [128, -18, 30, 20], [-128, -76, 34, 22],
-      [-16, -76, 26, 16], [24, 120, 30, 18], [-96, 118, 30, 18], [140, 76, 34, 22],
-      // 西北坡原来空着一大片，补几片林子，远看才不是一块光板
-      [-152, -18, 34, 26], [-96, -112, 32, 24], [-28, -146, 30, 20],
-      [56, -142, 30, 18], [-178, 76, 26, 14], [-64, -186, 30, 16],
-    ];
-    const push = (x, z, far) => {
-      if (Math.abs(x) > HALF - 22 || Math.abs(z) > HALF - 22) return;
-      if (isUnderwater(x, z)) return;
+
+    /* 全场统一密度撒点。
+       以前是「围着风车摆一圈林带」，结果中心密、外圈稀，
+       中间还留出几块突兀的空地。改成：在整块场地上均匀撒候选点，
+       用两层噪声决定「这里是不是林子」，于是林带和空地都自然长出来，
+       而且从中心到边缘的期望密度完全一致。 */
+    const forest = (x, z) => {
+      const big = fbm(x * 0.0040 + 11.3, z * 0.0040 - 5.1, 4);   // 大尺度林带
+      const mid = fbm(x * 0.0165 - 3.7, z * 0.0165 + 7.2, 3);    // 树丛边缘
+      return big * 0.70 + mid * 0.30;
+    };
+
+    const TARGET = 7200;
+    let guard = 0;
+    while (treeList.length < TARGET && guard < 120000) {
+      guard++;
+      const a = rnd() * Math.PI * 2;
+      const r = Math.sqrt(rnd()) * (HALF - 26);
+      const x = Math.cos(a) * r;
+      const z = Math.sin(a) * r + 12;
+
+      if (Math.abs(x) > HALF - 24 || Math.abs(z) > HALF - 24) continue;
+      if (forest(x, z) < 0.455) continue;          // 空地
+      if (isUnderwater(x, z)) continue;
+      if (inPasture(x, z, 2.5)) continue;
+      // 村子周围留出场地（半径别开太大，否则风车会孤零零站在空地上）
+      if (Math.hypot(x, z) < 19) continue;
+      if (Math.hypot(x + 8.3, z - 1.5) < 11) continue;
+      if (Math.hypot(x - 13.2, z - 3.4) < 8) continue;
+      if (Math.hypot(x - 15.6, z - 11.6) < 11) continue;
+      if (Math.hypot(x + 15, z - 8.5) < 6) continue;
+
+      const far = r > 125;
       treeList.push({
         x, z,
-        type: far ? (rnd() > 0.35 ? 0 : 1) : (rnd() > 0.4 ? 0 : 1),
+        type: rnd() > 0.4 ? 0 : 1,
         scale: (far ? 0.9 : 0.8) + rnd() * 0.7,
         rot: rnd() * 6.28,
         stretch: 0.88 + rnd() * 0.3,
         far,
       });
-    };
-    for (const [cx, cz, rad, n] of clusters) {
-      for (let i = 0; i < n; i++) {
-        const a = rnd() * Math.PI * 2;
-        const r = Math.pow(rnd(), 0.65) * rad;
-        push(cx + Math.cos(a) * r, cz + Math.sin(a) * r, false);
-      }
-    }
-    // 外圈林带：190–380m 环带里程序化撒，全部用低模树
-    for (let i = 0; i < 58; i++) {
-      const a = rnd() * Math.PI * 2;
-      const rr = 190 + Math.sqrt(rnd()) * 190;
-      const cx = Math.cos(a) * rr, cz = Math.sin(a) * rr + 20;
-      const rad = 24 + rnd() * 30;
-      const n = 20 + Math.floor(rnd() * 26);
-      for (let k = 0; k < n; k++) {
-        const a2 = rnd() * Math.PI * 2;
-        const r2 = Math.pow(rnd(), 0.65) * rad;
-        push(cx + Math.cos(a2) * r2, cz + Math.sin(a2) * r2, true);
-      }
-    }
-    // 零散孤树：近处全细节，远处低模
-    for (let i = 0; i < 340; i++) {
-      const a = rnd() * Math.PI * 2;
-      const r = 58 + rnd() * 320;
-      push(6 + Math.cos(a) * r, 26 + Math.sin(a) * r, r > 190);
     }
   }
   trees = buildTrees(sampleSplat, treeList);

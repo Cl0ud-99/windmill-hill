@@ -304,7 +304,7 @@ export function treeGeometry(seed = 1, type = 0, far = false) {
     for (let i = 0; i < 5; i++) {
       const a = (i / 5) * Math.PI * 2 + rnd();
       const rr = cr * (0.16 + rnd() * 0.34);
-      const g = new THREE.SphereGeometry(cr * (0.54 + rnd() * 0.18), 8, 6);
+      const g = new THREE.SphereGeometry(cr * (0.56 + rnd() * 0.16), 8, 6);
       g.scale(1, 0.86, 1);
       g.translate(Math.cos(a) * rr, cy + (rnd() - 0.5) * cr * 0.28, Math.sin(a) * rr);
       paintGeo(g, i % 2 ? cM : cD);
