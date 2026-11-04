@@ -344,14 +344,14 @@ async function init() {
   // 天空里的鸟：七种，各有活动范围、巡航速度和转弯半径
   if (!birdsPreview) {
     const plan = [
-      { mk: makeGull, n: 6, y: 27, cx: 0, cz: 33, range: 45, speed: 9.0, turn: 0.55, span: 1.5, bias: 0.62 },
-      { mk: makeCrow, n: 4, y: 23, cx: 20, cz: 15, range: 38, speed: 8.2, turn: 0.95, span: 1.04, bias: 0.42 },
-      { mk: makeSwallow, n: 8, y: 17, cx: 9, cz: 34, range: 34, speed: 12.0, turn: 1.90, span: 0.96, bias: 0.30 },
-      { mk: makeHawk, n: 3, y: 39, cx: 2, cz: 27, range: 70, speed: 7.0, turn: 0.32, span: 1.8, bias: 0.90 },
+      { mk: makeGull, n: 3, y: 27, cx: 0, cz: 33, range: 45, speed: 9.0, turn: 0.55, span: 1.5, bias: 0.62 },
+      { mk: makeCrow, n: 2, y: 23, cx: 20, cz: 15, range: 38, speed: 8.2, turn: 0.95, span: 1.04, bias: 0.42 },
+      { mk: makeSwallow, n: 4, y: 17, cx: 9, cz: 34, range: 34, speed: 12.0, turn: 1.90, span: 0.96, bias: 0.30 },
+      { mk: makeHawk, n: 2, y: 39, cx: 2, cz: 27, range: 70, speed: 7.0, turn: 0.32, span: 1.8, bias: 0.90 },
       // 鹤：共用一个圆心和半径，只错开起始角度，排成一条线慢慢绕
-      { mk: makeCrane, n: 5, y: 54, cx: 2, cz: 28, range: 120, speed: 12.0, turn: 0.26, span: 2.4, bias: 1.0, orbit: true },
-      { mk: makeMallard, n: 5, y: 21, cx: 14, cz: 31, range: 44, speed: 14.0, turn: 0.60, span: 0.86, bias: 0.20 },
-      { mk: makeSparrow, n: 14, y: 9, cx: 4, cz: 25, range: 16, speed: 7.0, turn: 2.60, span: 0.28, bias: 0.30 },
+      { mk: makeCrane, n: 3, y: 54, cx: 2, cz: 28, range: 120, speed: 12.0, turn: 0.26, span: 2.4, bias: 1.0, orbit: true },
+      { mk: makeMallard, n: 2, y: 21, cx: 14, cz: 31, range: 44, speed: 14.0, turn: 0.60, span: 0.86, bias: 0.20 },
+      { mk: makeSparrow, n: 7, y: 9, cx: 4, cz: 25, range: 16, speed: 7.0, turn: 2.60, span: 0.28, bias: 0.30 },
     ];
     for (const p of plan) {
       for (let i = 0; i < p.n; i++) {

@@ -1,5 +1,5 @@
 [
-  { "name": "bands2", "eval": "(() => { const t = window.__demo.trees; const seen = new Set(); for (const m of t.children) { if (!m.isInstancedMesh) continue; const a = m.instanceMatrix.array; for (let i = 0; i < m.count; i++) seen.add(a[i*16+12].toFixed(2)+','+a[i*16+14].toFixed(2)); } const pts = [...seen].map(k=>k.split(',').map(Number)); const bands = [[0,105],[105,160],[160,210],[210,230],[230,280],[280,330],[330,400]]; const out = bands.map(([a,b]) => { const n = pts.filter(([x,z])=>{const d=Math.hypot(x,z-12);return d>=a&&d<b;}).length; return [a+'-'+b, n]; }); return { total: pts.length, bands: out }; })()", "wait": 500 },
-  { "name": "village", "view": { "pos": [34.0, 20.0, 62.0], "look": [0.0, 10.5, 2.0], "fov": 38 }, "wait": 900 },
-  { "name": "west", "view": { "pos": [90.0, 90.0, 150.0], "look": [-50.0, 6.0, 20.0], "fov": 44 }, "wait": 900 }
+  { "name": "sky-1", "view": { "pos": [2.0, 9.0, 6.0], "look": [0.0, 26.0, 30.0], "fov": 52 }, "wait": 900 },
+  { "name": "sky-2", "wait": 1200 },
+  { "name": "village", "view": { "pos": [34.0, 20.0, 62.0], "look": [0.0, 10.5, 2.0], "fov": 38 }, "wait": 900 }
 ]
