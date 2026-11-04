@@ -68,6 +68,15 @@ let pets = [];
 
 const frame = () => new Promise((r) => requestAnimationFrame(() => setTimeout(r, 0)));
 
+/* 村里猫狗鸡鸭常待的地方——种草时要在这里踩秃一圈，
+   否则 0.4m 高的草会把它们整个埋掉 */
+const YARD_SPOTS = [
+  [5.4, 1.6],                                  // 猫
+  [0.6, 8.6],                                  // 狗
+  [4.8, 11.6], [5.8, 12.4], [4.6, 12.9],       // 鸡
+  [9.8, 11.6], [10.4, 12.4],                   // 鸭
+];
+
 /* ============================================================
    初始化
    ============================================================ */
@@ -244,7 +253,13 @@ async function init() {
   ui.progress(0.74, '正在长草…');
   await frame();
   // 牧场里被啃短：草矮一半，穗草和野花基本没有
-  const grazed = (x, z) => (inPasture(x, z) ? 0.50 : 1);
+  const grazed = (x, z) => {
+    if (inPasture(x, z)) return 0.50;
+    for (const [ax, az] of YARD_SPOTS) {
+      if (Math.hypot(x - ax, z - az) < 2.2) return 0.26;   // 被踩秃的一小圈
+    }
+    return 1;
+  };
   const inYard = (x, z) => inPasture(x, z, 0.4);
   grass = buildGrass(sampleSplat, {
     count: 62000, height: 0.38, blades: 6, seed: 7, ao: ao.sample, grazeScale: grazed,
@@ -419,6 +434,43 @@ async function init() {
     spawn(buildCartoonSheep, 'sheep-b', -6.6, 34.2, 2.4, 1.7);
     spawn(buildCartoonSheep, 'sheep-c', -4.8, 33.3, 1.4, 1.8);
     spawn(buildCartoonSheep, 'sheep-d', -7.6, 35.4, 2.1, 1.6);
+  }
+
+  // 村子里的猫、狗、鸡、鸭：散养在各处
+  {
+    // 别钻进建筑和水井里
+    const yardGuard = (px, pz) => (
+      Math.hypot(px, pz) > 5.0 &&                  // 风车塔
+      Math.hypot(px + 8.3, pz - 1.5) > 5.6 &&      // 磨坊主屋
+      Math.hypot(px - 13.2, pz - 3.4) > 3.4 &&     // 小风车
+      Math.hypot(px - 8.2, pz - 13.8) > 2.2 &&     // 水井
+      Math.hypot(px + 15, pz - 8.5) > 3.2          // 敞棚
+    );
+    const put = (build, name, x, z, ry, r) => {
+      const a = build({ radius: r });
+      a.userData.name = name;
+      a.position.set(x, terrainHeight(x, z), z);
+      a.rotation.y = ry;
+      a.userData.home = { x, z };
+      a.userData.ground = terrainHeight;
+      a.userData.radius = r;
+      a.userData.canStand = yardGuard;
+      scene.add(a);
+      pets.push(a);
+      return a;
+    };
+
+    // 猫蹲在风车东侧晒太阳，几乎不走动
+    put(buildCartoonCat, 'cat', 5.4, 1.6, -2.4, 0.5);
+    // 狗在院子里来回溜达
+    put(buildCartoonDog, 'dog', 0.6, 8.6, 0.9, 3.2);
+    // 三只鸡在水井边刨食
+    put(buildCartoonChicken, 'hen-a', 4.8, 11.6, 1.2, 1.7);
+    put(buildCartoonChicken, 'hen-b', 5.8, 12.4, 2.6, 1.5);
+    put(buildCartoonChicken, 'hen-c', 4.6, 12.9, 0.4, 1.6);
+    // 两只鸭在井边晃
+    put(buildCartoonDuck, 'duck-a', 9.8, 11.6, -1.1, 1.6);
+    put(buildCartoonDuck, 'duck-b', 10.4, 12.4, 1.8, 1.5);
   }
 
   post = buildPost(renderer, scene, camera);
