@@ -170,10 +170,10 @@ async function init() {
       return big * 0.70 + mid * 0.30;
     };
 
-    const TARGET = 9000;
-    let guard = 0;
-    while (treeList.length < TARGET && guard < 260000) {
-      guard++;
+    // 固定撒点次数（而不是「种够多少棵」），
+    // 这样外圈减半不会反过来把内圈填得更密
+    const ATTEMPTS = 15000;
+    for (let i = 0; i < ATTEMPTS; i++) {
       const a = rnd() * Math.PI * 2;
       const r = Math.sqrt(rnd()) * (HALF - 26);
       const x = Math.cos(a) * r;
@@ -183,6 +183,10 @@ async function init() {
       // 软阈值：噪声低的地方变稀，但不会出现整片秃地
       const p = 0.42 + 0.58 * smoothstep(0.40, 0.58, forest(x, z));
       if (rnd() > p) continue;
+      // 外圈随机砍掉一半：逐棵独立掷骰子，所以会砍出斑驳的疏密，
+      // 而不是整体均匀变稀。170→240m 渐变过渡，避免出现一圈明显的密度边界
+      const outer = smoothstep(170, 240, r);
+      if (rnd() < outer * 0.5) continue;
       if (inRiverChannel(x, z, 1.5)) continue;
       if (inPasture(x, z, 2.5)) continue;
       // 村子周围留出场地（半径别开太大，否则风车会孤零零站在空地上）
