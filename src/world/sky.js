@@ -135,7 +135,7 @@ export function buildSky() {
       uHorizon: { value: new THREE.Color(0.40, 0.58, 0.71) },
       uTime: shared.uTime,
       uCloudCover: { value: 1.0 },
-      uDusk: { value: 0.0 },
+      uDusk: shared.uDusk,
     },
     side: THREE.BackSide,
     depthWrite: false,

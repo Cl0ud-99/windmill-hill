@@ -24,6 +24,7 @@ export const shared = {
   uShadowTint: { value: new THREE.Color(0.54, 0.58, 0.70) },
   uFogColor: { value: new THREE.Color(0.44, 0.60, 0.72) },
   uFogDensity: { value: 0.00145 },
+  uDusk: { value: 0.0 },          // 0 = 白昼，1 = 黄昏（昼夜预设里插值）
   uWindDir: { value: new THREE.Vector2(0.86, 0.51) },
 };
 

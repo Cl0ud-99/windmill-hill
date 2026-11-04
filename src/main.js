@@ -18,7 +18,7 @@ import {
 } from './world/vegetation.js';
 import { buildWall } from './world/walls.js';
 import { buildAOMap, AO_REGION } from './world/ao.js';
-import { buildPollen, buildButterflies } from './world/particles.js';
+import { buildPollen, buildButterflies, buildRiverMist } from './world/particles.js';
 import {
   makeGull, makeCrow, makeSwallow, makeHawk,
   makeCrane, makeMallard, makeSparrow, fly,
@@ -66,7 +66,7 @@ let tod = null;
 let mill, house, smallMill, water, sky, terrain, grass, trees, wall, scenery, village;
 let avatar = null;
 let third = null;
-let pollen = null, butterflies = null;
+let pollen = null, butterflies = null, mist = null;
 let flock = [];
 let pets = [];
 
@@ -324,12 +324,18 @@ async function init() {
   await frame();
 
   // 氛围粒子
-  pollen = buildPollen(1500);
+  pollen = buildPollen();
   scene.add(pollen);
+  // 河面 / 尾水渠上的水汽
+  mist = buildRiverMist();
+  scene.add(mist);
   butterflies = buildButterflies([
     { x: 13, z: 13 }, { x: 18, z: 12 }, { x: 16, z: 9 },
     { x: 11.5, z: 9.5 }, { x: 20, z: 10.5 }, { x: 9, z: 12 },
-  ], 8);
+    { x: 7, z: 16 }, { x: 22, z: 15 }, { x: 15, z: 18 },
+    { x: 2.5, z: 26 }, { x: 6, z: 33 }, { x: 14, z: 31 },
+    { x: 18, z: 42 }, { x: -6, z: 8 }, { x: -11, z: 14 },
+  ], 26);
   scene.add(butterflies);
   // 造型确认：?birds=1 时把四种鸟并排挂在空中
   const birdsPreview = new URLSearchParams(location.search).get('birds') === '1';
@@ -612,7 +618,8 @@ function tick() {
   if (smallMill) smallMill.sails.rotation.z -= dt * 0.22;
   if (sky) sky.mesh.position.copy(camera.position);
   if (tod) tod.update(dt);
-  if (pollen) pollen.material.uniforms.uCam.value.copy(camera.position);
+  if (pollen) pollen.userData.update(camera.position, terrainHeight(camera.position.x, camera.position.z));
+  if (mist) mist.userData.update(camera.position);
   if (butterflies) butterflies.userData.update(dt);
   for (const b of flock) if (b.userData.update) b.userData.update(dt);
   for (const p of pets) if (p.userData.update) p.userData.update(dt, t);
@@ -668,7 +675,7 @@ window.__demo = {
   get grass() { return grass; }, get trees() { return trees; },
   get wall() { return wall; }, get scenery() { return scenery; }, get village() { return village; },
   get avatar() { return avatar; }, get third() { return third; },
-  get pollen() { return pollen; }, get butterflies() { return butterflies; }, get flock() { return flock; },
+  get pollen() { return pollen; }, get butterflies() { return butterflies; }, get mist() { return mist; }, get flock() { return flock; },
   get pets() { return pets; }, get tod() { return tod; },
   terrainHeight,
   /* 昼夜：setTimeOfDay('dusk', 0) 立即切，第二个参数是过渡秒数 */

@@ -121,6 +121,7 @@ export function createTod({ shared, sky, sun, post, shadowCentre, sunDistance = 
     shared.uShadowTint.value.copy(cur.col.shadowTint);
     shared.uBounceColor.value.copy(cur.col.bounce);
     shared.uBounceTint.value.copy(cur.col.bounceTint);
+    shared.uDusk.value = cur.num.dusk;
 
     // ---- 天空 ----
     const su = sky.material.uniforms;
@@ -128,7 +129,6 @@ export function createTod({ shared, sky, sun, post, shadowCentre, sunDistance = 
     su.uSkyColor.value.copy(cur.col.skyMid);
     su.uHorizon.value.copy(cur.col.horizon);
     su.uCloudCover.value = cur.num.cloudCover;
-    su.uDusk.value = cur.num.dusk;
 
     // ---- 平行光 + 阴影取景框 ----
     sun.color.copy(cur.col.sunColor);
