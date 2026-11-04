@@ -179,52 +179,61 @@ async function init() {
       return big * 0.70 + mid * 0.30;
     };
 
-    // 固定撒点次数（而不是「种够多少棵」），
-    // 这样外圈减半不会反过来把内圈填得更密
-    const ATTEMPTS = 15000;
-    for (let i = 0; i < ATTEMPTS; i++) {
-      const a = rnd() * Math.PI * 2;
-      const r = Math.sqrt(rnd()) * (HALF - 26);
-      const x = Math.cos(a) * r;
-      const z = Math.sin(a) * r + 12;
-
-      if (Math.abs(x) > HALF - 24 || Math.abs(z) > HALF - 24) continue;
-      // 软阈值：噪声低的地方变稀，但不会出现整片秃地
-      const p = 0.42 + 0.58 * smoothstep(0.40, 0.58, forest(x, z));
-      if (rnd() > p) continue;
-      // 三段密度：内圈满、中圈砍一半、外圈砍到 1/4。
-      // 每一档都是逐棵独立掷骰子，所以砍出来是斑驳的疏密，
-      // 不是整体均匀变稀；档与档之间用 smoothstep 渐变，避免出现同心圆边界
-      // 中圈全砍空，外圈只留 1/8：105m 内满密度 → 210m 处归零 → 330m 处回到 0.125
-      const mid = smoothstep(105, 210, r);
-      const far = smoothstep(230, 330, r);
-      const keep = (1 - mid) + far * 0.125;
-      if (rnd() > keep) continue;
-      if (inRiverChannel(x, z, 1.5)) continue;
-      if (inPasture(x, z, 2.5)) continue;
-      // 村子周围留出场地（半径别开太大，否则风车会孤零零站在空地上）
-      if (Math.hypot(x, z) < 30) continue;
-      if (Math.hypot(x + 8.3, z - 1.5) < 11) continue;
-      if (Math.hypot(x - 13.2, z - 3.4) < 8) continue;
-      if (Math.hypot(x - 15.6, z - 11.6) < 11) continue;
-      if (Math.hypot(x + 15, z - 8.5) < 6) continue;
+    // 按圈给目标数量：每一圈在自己的环带里独立撒点，撒够为止。
+    // 这样每一圈的数量是确定的，不会被相邻圈互相影响。
+    const BANDS = [
+      [0, 105, 455],     // 圈1 内圈，满密度
+      [105, 160, 273],   // 圈2 减半
+      [160, 210, 171],   // 圈3
+      [210, 230, 120],   // 圈4 补 120 棵
+      [230, 280, 80],    // 圈5 补到 80 棵
+      [280, 330, 187],   // 圈6
+      [330, 400, 342],   // 圈7 外圈
+    ];
+    const blocked = (x, z) => {
+      if (Math.abs(x) > HALF - 24 || Math.abs(z) > HALF - 24) return true;
+      if (inRiverChannel(x, z, 1.5)) return true;
+      if (inPasture(x, z, 2.5)) return true;
+      // 村子周围留出场地
+      if (Math.hypot(x, z) < 30) return true;
+      if (Math.hypot(x + 8.3, z - 1.5) < 11) return true;
+      if (Math.hypot(x - 13.2, z - 3.4) < 8) return true;
+      if (Math.hypot(x - 15.6, z - 11.6) < 11) return true;
+      if (Math.hypot(x + 15, z - 8.5) < 6) return true;
       // 土路两侧留出走廊，别把路封死
-      if (nearestOnPolyline(x, z, PATH_MAIN).dist < 5.0) continue;
-      if (nearestOnPolyline(x, z, PATH_GARDEN).dist < 2.8) continue;
+      if (nearestOnPolyline(x, z, PATH_MAIN).dist < 5.0) return true;
+      if (nearestOnPolyline(x, z, PATH_GARDEN).dist < 2.8) return true;
       // 漫游落地点周围留一块空地，否则玩家一睁眼就在树冠里
-      if (Math.hypot(x - 26, z - 84) < 20) continue;
-      if (Math.hypot(x - 12, z - 30) < 10) continue;
+      if (Math.hypot(x - 26, z - 84) < 20) return true;
+      if (Math.hypot(x - 12, z - 30) < 10) return true;
+      return false;
+    };
 
-      // 三档细节：近处全建模、中景低模、200m 外只剩一个剪影
-      const lod = r < 85 ? 0 : (r < 200 ? 1 : 2);
-      treeList.push({
-        x, z,
-        type: rnd() > 0.4 ? 0 : 1,
-        scale: (lod ? 0.9 : 0.8) + rnd() * 0.7,
-        rot: rnd() * 6.28,
-        stretch: 0.88 + rnd() * 0.3,
-        lod,
-      });
+    for (const [r0, r1, target] of BANDS) {
+      let placed = 0, guard = 0;
+      while (placed < target && guard < target * 80) {
+        guard++;
+        const a = rnd() * Math.PI * 2;
+        // 在环带内按面积均匀取半径
+        const rr = Math.sqrt(r0 * r0 + (r1 * r1 - r0 * r0) * rnd());
+        const x = Math.cos(a) * rr;
+        const z = Math.sin(a) * rr + 12;
+        if (blocked(x, z)) continue;
+        // 噪声决定林带与空地，砍出来才是斑驳的
+        const p = 0.42 + 0.58 * smoothstep(0.40, 0.58, forest(x, z));
+        if (rnd() > p) continue;
+
+        const lod = rr < 85 ? 0 : (rr < 200 ? 1 : 2);
+        treeList.push({
+          x, z,
+          type: rnd() > 0.4 ? 0 : 1,
+          scale: (lod ? 0.9 : 0.8) + rnd() * 0.7,
+          rot: rnd() * 6.28,
+          stretch: 0.88 + rnd() * 0.3,
+          lod,
+        });
+        placed++;
+      }
     }
   }
   trees = buildTrees(sampleSplat, treeList);

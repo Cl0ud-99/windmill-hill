@@ -1,3 +1,6 @@
 [
-  { "name": "small-steps", "view": { "pos": [17.0, 15.0, 15.5], "look": [13.2, 8.2, 3.4], "fov": 42 }, "wait": 900 }
+  { "name": "bands", "eval": "(() => { const t = window.__demo.trees; const seen = new Set(); for (const m of t.children) { if (!m.isInstancedMesh) continue; const a = m.instanceMatrix.array; for (let i = 0; i < m.count; i++) seen.add(Math.round(a[i*16+12])+','+Math.round(a[i*16+14])); } const pts = [...seen].map(k=>k.split(',').map(Number)); const bands = [[0,105],[105,160],[160,210],[210,230],[230,280],[280,330],[330,400]]; const out = bands.map(([a,b]) => { const n = pts.filter(([x,z])=>{const d=Math.hypot(x,z-12);return d>=a&&d<b;}).length; const area = Math.PI*(b*b-a*a); return [a+'-'+b, n, +(area/Math.max(n,1)).toFixed(0)]; }); return { total: pts.length, bands: out }; })()", "wait": 500 },
+  { "name": "top", "view": { "pos": [-20.0, 200.0, 120.0], "look": [-20.0, 0.0, 20.0], "fov": 55 }, "wait": 900 },
+  { "name": "west", "view": { "pos": [90.0, 90.0, 150.0], "look": [-50.0, 6.0, 20.0], "fov": 44 }, "wait": 900 },
+  { "name": "high", "view": { "pos": [0.0, 230.0, 400.0], "look": [0.0, 0.0, 30.0], "fov": 50 }, "wait": 900 }
 ]
