@@ -2,7 +2,9 @@ import * as THREE from 'three';
 import { shared, setTime } from './core/materials.js';
 import { fbm, smoothstep } from './core/noise.js';
 import { buildSky } from './world/sky.js';
-import { buildTerrain, buildSplatMap, buildFarHills, buildHeightTexture } from './world/terrain.js';
+import {
+  buildTerrain, buildSplatMap, buildFarHills, buildHeightTexture, buildBounceMap,
+} from './world/terrain.js';
 import {
   riverCenterZ, riverHalfWidth, terrainHeight, WATER_Y, PASTURE, inPasture, pastureClearance,
   HALF, inRiverChannel, nearestOnPolyline, PATH_MAIN, PATH_GARDEN,
@@ -46,7 +48,7 @@ renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.NoToneMapping;
 renderer.shadowMap.enabled = true;
-renderer.shadowMap.type = THREE.PCFShadowMap;
+renderer.shadowMap.type = THREE.BasicShadowMap;
 
 const scene = new THREE.Scene();
 const veg = new THREE.Group();
@@ -99,9 +101,10 @@ async function init() {
   sc.near = 30; sc.far = 380;
   sc.updateProjectionMatrix();
   sun.shadow.bias = -0.00022;
-  sun.shadow.normalBias = 0.035;
-  sun.shadow.radius = 4.5;   // Vogel 盘半径（texel），让投影有柔和半影
+  sun.shadow.normalBias = 0.028;
   scene.add(sun, sun.target);
+  // 半影宽度不再由 shadow.radius 决定：着色器里的 toonShadowMask()
+  // 会按「接收点与遮挡物的间距」动态收放模糊半径（接触硬化）。
 
   /* 天空 */
   sky = buildSky();
@@ -111,6 +114,9 @@ async function init() {
 
   /* 地形 */
   const splat = buildSplatMap(2048);
+  // 地面反弹色：从 splat 生成，所有材质按世界坐标采样
+  shared.uBounceMap.value = buildBounceMap(splat.data, splat.size, 256);
+  shared.uBounceRegion.value.set(0, 0, 840, 0);
   terrain = buildTerrain(splat.texture);
   scene.add(terrain.mesh);
   scene.add(buildFarHills());

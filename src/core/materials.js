@@ -5,12 +5,21 @@ import * as THREE from 'three';
    ============================================================ */
 export const SUN_DIR = new THREE.Vector3(0.70, 0.60, 0.26).normalize();
 
+// 兜底：还没生成反弹贴图时用的 1x1 常量（就是原来那个偏黄绿的值）
+const DEFAULT_BOUNCE = new THREE.DataTexture(
+  new Uint8Array([158, 158, 92, 255]), 1, 1, THREE.RGBAFormat,
+);
+DEFAULT_BOUNCE.colorSpace = THREE.NoColorSpace;
+DEFAULT_BOUNCE.needsUpdate = true;
+
 export const shared = {
   uTime: { value: 0 },
   uSunDir: { value: SUN_DIR.clone() },
   uSunColor: { value: new THREE.Color(1.0, 0.94, 0.80) },
   uSkyColor: { value: new THREE.Color(0.66, 0.80, 0.94) },
   uBounceColor: { value: new THREE.Color(0.62, 0.62, 0.36) },
+  uBounceMap: { value: DEFAULT_BOUNCE },
+  uBounceRegion: { value: new THREE.Vector4(0, 0, 840, 0) },   // cx, cz, size
   uShadowTint: { value: new THREE.Color(0.54, 0.58, 0.70) },
   uFogColor: { value: new THREE.Color(0.44, 0.60, 0.72) },
   uFogDensity: { value: 0.00145 },
@@ -18,6 +27,63 @@ export const shared = {
 };
 
 export function setTime(t) { shared.uTime.value = t; }
+
+/* ============================================================
+   接触硬化阴影（contact-hardening PCF）
+   ------------------------------------------------------------
+   普通 PCF 的半影宽度是常数：贴地处也糊成一团，远处的影子反而不够散。
+   这里先用一次中心采样取出遮挡物深度，用「接收点深度 − 遮挡物深度」
+   估计两者的间距 gap：
+     · gap ≈ 0（贴着接触点）→ 模糊半径收窄到 0.7 texel，边缘几乎锐利
+     · gap 大（影子投得很远）→ 半径铺开到 7.5 texel，边缘变软
+   相当于用一张 110m 的阴影图做出近似 PCSS 的接触硬化效果。
+   需要 shadowMap.type = BasicShadowMap（这样阴影图是普通 sampler2D，
+   才能读到原始深度）。
+   ============================================================ */
+export const SHADOW_GLSL = /* glsl */`
+#if defined( USE_SHADOWMAP ) && NUM_DIR_LIGHT_SHADOWS > 0 && defined( SHADOWMAP_TYPE_BASIC )
+
+  const float SHADOW_GOLDEN = 2.39996323;
+
+  float toonShadowMask() {
+    if ( ! receiveShadow ) return 1.0;
+
+    vec4 sc = vDirectionalShadowCoord[ 0 ];
+    sc.xyz /= sc.w;
+    sc.z += directionalLightShadows[ 0 ].shadowBias;
+
+    if ( sc.x < 0.0 || sc.x > 1.0 || sc.y < 0.0 || sc.y > 1.0 || sc.z > 1.0 ) return 1.0;
+
+    vec2 texel = 1.0 / directionalLightShadows[ 0 ].shadowMapSize;
+
+    // 中心采样：拿到最近遮挡物的深度
+    float d0 = texture2D( directionalShadowMap[ 0 ], sc.xy ).r;
+    float gap = max( sc.z - d0, 0.0 );
+
+    // 0.012 的归一化深度 ≈ 4.2m 间距（近 30 / 远 380，量程 350m）
+    float rad = mix( 0.7, 7.5, smoothstep( 0.0, 0.012, gap ) );
+
+    // 交错梯度噪声：逐像素旋转采样盘，8 个样本就能铺出没有条带的软边
+    float phi = fract( 52.9829189 * fract( dot( gl_FragCoord.xy, vec2( 0.06711056, 0.00583715 ) ) ) ) * 6.2831853;
+
+    float sum = 0.0;
+    for ( int i = 0; i < 8; i ++ ) {
+      float fi = float( i ) + 0.5;
+      float rr = sqrt( fi * 0.125 );
+      float th = fi * SHADOW_GOLDEN + phi;
+      vec2 off = vec2( cos( th ), sin( th ) ) * rr * rad * texel;
+      sum += step( sc.z, texture2D( directionalShadowMap[ 0 ], sc.xy + off ).r );
+    }
+
+    return mix( 1.0, sum * 0.125, directionalLightShadows[ 0 ].shadowIntensity );
+  }
+
+#else
+
+  float toonShadowMask() { return 1.0; }
+
+#endif
+`;
 
 /* ============================================================
    卡通 / 绘画风格着色器
@@ -124,6 +190,8 @@ uniform vec3  uSunDir;
 uniform vec3  uSunColor;
 uniform vec3  uSkyColor;
 uniform vec3  uBounceColor;
+uniform sampler2D uBounceMap;
+uniform vec4  uBounceRegion;
 uniform vec3  uShadowTint;
 uniform vec3  uFogColor;
 uniform float uFogDensity;
@@ -145,6 +213,8 @@ varying float vH;
 #include <lights_pars_begin>
 #include <shadowmap_pars_fragment>
 #include <shadowmask_pars_fragment>
+
+${SHADOW_GLSL}
 
 float hash21( vec2 p ) {
   p = fract( p * vec2( 123.34, 456.21 ) );
@@ -226,7 +296,7 @@ void main() {
   vec3 V = normalize( vView );
   vec3 L = uSunDir;
 
-  float shadow = getShadowMask();
+  float shadow = toonShadowMask();
   float ndl = dot( N, L );
   float diff = clamp( ( ndl + uWrap ) / ( 1.0 + uWrap ), 0.0, 1.0 );
 
@@ -250,7 +320,10 @@ void main() {
 
   // 天光 / 地面反弹
   col += base * uSkyColor * 0.125 * ( 0.55 + 0.45 * N.y ) * ( 0.55 + 0.45 * shadow );
-  col += base * uBounceColor * 0.098 * ( 0.55 - 0.45 * N.y );
+  // 地面反弹：颜色取自脚下的地表材质（草 / 土 / 湿地）
+  vec2 bUv = ( vWorld.xz - uBounceRegion.xy ) / uBounceRegion.z + 0.5;
+  vec3 bounceC = texture2D( uBounceMap, clamp( bUv, 0.0, 1.0 ) ).rgb;
+  col += base * bounceC * 0.098 * ( 0.55 - 0.45 * N.y );
 
   // 高光
   vec3 H = normalize( L + V );

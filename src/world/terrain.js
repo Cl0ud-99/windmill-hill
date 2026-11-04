@@ -3,7 +3,7 @@ import {
   WORLD, HALF, WATER_Y, terrainHeight, riverCenterZ, riverHalfWidth,
   PATH_MAIN, PATH_GARDEN, WALL_PTS, resample,
 } from './layout.js';
-import { shared, makeToon } from '../core/materials.js';
+import { shared, makeToon, SHADOW_GLSL } from '../core/materials.js';
 import { fbm, hash2, clamp, smoothstep, mulberry32 } from '../core/noise.js';
 import { dirtTexture } from '../core/textures.js';
 
@@ -22,6 +22,8 @@ uniform float uTime;
 #include <lights_pars_begin>
 #include <shadowmap_pars_fragment>
 #include <shadowmask_pars_fragment>
+
+${SHADOW_GLSL}
 
 float hash21( vec2 p ) {
   p = fract( p * vec2( 123.34, 456.21 ) );
@@ -166,7 +168,7 @@ void main() {
 
   col *= ao;
 
-  float shadow = getShadowMask();
+  float shadow = toonShadowMask();
   float ndl = dot( N, L );
   float diff = clamp( ( ndl + 0.15 ) / 1.15, 0.0, 1.0 );
   float cs = fbm2l( vWorld.xz * 0.0075 + vec2( uTime * 0.0035, uTime * 0.0018 ) );
@@ -342,6 +344,55 @@ export function buildHeightTexture(size = 512) {
   t.flipY = false;
   t.needsUpdate = true;
   t.userData = { MIN, RANGE };
+  return t;
+}
+
+/* 从 splat 生成一张「地面反弹色」贴图：
+   草地反弹暖黄绿、裸土反弹暖褐、湿地反弹冷蓝灰。
+   所有材质都会采样它，让屋檐下、树叶背面、石头背光面
+   染上脚下地面的颜色，而不是统一一个常量。 */
+export function buildBounceMap(splatData, size, out = 256) {
+  const g = [0.50, 0.56, 0.26];   // 草地
+  const d = [0.58, 0.44, 0.31];   // 裸土
+  const w = [0.34, 0.46, 0.50];   // 湿地 / 石滩
+  const arr = new Uint8Array(out * out * 4);
+  const step = size / out;
+  for (let y = 0; y < out; y++) {
+    for (let x = 0; x < out; x++) {
+      let r = 0, gg = 0, b = 0, n = 0;
+      const y0 = Math.floor(y * step), x0 = Math.floor(x * step);
+      const y1 = Math.min(size, Math.floor((y + 1) * step));
+      const x1 = Math.min(size, Math.floor((x + 1) * step));
+      for (let yy = y0; yy < y1; yy += 2) {
+        for (let xx = x0; xx < x1; xx += 2) {
+          const i = (yy * size + xx) * 4;
+          r += splatData[i]; gg += splatData[i + 1]; b += splatData[i + 2];
+          n++;
+        }
+      }
+      const cr = r / Math.max(n, 1) / 255;
+      const cg = gg / Math.max(n, 1) / 255;
+      const cb = b / Math.max(n, 1) / 255;
+      const sum = cr + cg + cb;
+      let col;
+      if (sum < 0.02) col = g;
+      else col = [
+        (g[0] * cr + d[0] * cg + w[0] * cb) / sum,
+        (g[1] * cr + d[1] * cg + w[1] * cb) / sum,
+        (g[2] * cr + d[2] * cg + w[2] * cb) / sum,
+      ];
+      const o = (y * out + x) * 4;
+      arr[o] = Math.min(255, Math.round(col[0] * 255));
+      arr[o + 1] = Math.min(255, Math.round(col[1] * 255));
+      arr[o + 2] = Math.min(255, Math.round(col[2] * 255));
+      arr[o + 3] = 255;
+    }
+  }
+  const t = new THREE.DataTexture(arr, out, out, THREE.RGBAFormat);
+  t.magFilter = THREE.LinearFilter;
+  t.minFilter = THREE.LinearFilter;
+  t.colorSpace = THREE.NoColorSpace;
+  t.needsUpdate = true;
   return t;
 }
 

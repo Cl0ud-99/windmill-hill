@@ -29,7 +29,7 @@ page.on('console', (m) => {
 });
 page.on('pageerror', (e) => console.log('[pageerror]', String(e).slice(0, 800)));
 
-await page.goto('http://localhost:5173/' + (process.env.QS || ''), { waitUntil: 'networkidle2', timeout: 120000 });
+await page.goto('http://localhost:5173/' + (process.env.QS || ''), { waitUntil: 'domcontentloaded', timeout: 120000 });
 try {
   await page.waitForFunction('window.__ready === true', { timeout: 180000 });
 } catch (e) {
