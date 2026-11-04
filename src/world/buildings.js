@@ -94,6 +94,57 @@ export function doorUnit(w = 1.35, h = 2.45, opts = {}) {
   return g;
 }
 
+/* 扇形柱：CylinderGeometry 的 thetaLength < 2π 时不会生成两个径向侧壁，
+   直接用会看到台阶侧面是空的。这里自己建一个封口的楔形。 */
+function wedgeGeo(R, h, a0, a1, seg = 20) {
+  const pos = [], uv = [], idx = [];
+  let n = 0;
+  const v = (x, y, z, u, w) => { pos.push(x, y, z); uv.push(u, w); return n++; };
+
+  // 顶面：从圆心扇形展开
+  const ct = v(0, h, 0, 0, 0);
+  const top = [];
+  for (let i = 0; i <= seg; i++) {
+    const a = a0 + (a1 - a0) * (i / seg);
+    const x = Math.sin(a) * R, z = Math.cos(a) * R;
+    top.push(v(x, h, z, x / 2, z / 2));
+  }
+  for (let i = 0; i < seg; i++) idx.push(ct, top[i], top[i + 1]);
+
+  // 外侧弧面
+  const wt = [], wb = [];
+  for (let i = 0; i <= seg; i++) {
+    const a = a0 + (a1 - a0) * (i / seg);
+    const x = Math.sin(a) * R, z = Math.cos(a) * R;
+    const u = (i / seg) * (a1 - a0) * R / 2;
+    wt.push(v(x, h, z, u, h / 2));
+    wb.push(v(x, 0, z, u, 0));
+  }
+  for (let i = 0; i < seg; i++) {
+    idx.push(wb[i], wb[i + 1], wt[i + 1]);
+    idx.push(wb[i], wt[i + 1], wt[i]);
+  }
+
+  // 两个径向侧壁（就是之前缺的那两块）
+  for (const sd of [0, seg]) {
+    const a = a0 + (a1 - a0) * (sd / seg);
+    const x = Math.sin(a) * R, z = Math.cos(a) * R;
+    const p0 = v(0, 0, 0, 0, 0);
+    const p1 = v(x, 0, z, R / 2, 0);
+    const p2 = v(x, h, z, R / 2, h / 2);
+    const p3 = v(0, h, 0, 0, h / 2);
+    if (sd === 0) idx.push(p0, p1, p2, p0, p2, p3);
+    else idx.push(p0, p2, p1, p0, p3, p2);
+  }
+
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
+  g.setIndex(idx);
+  g.computeVertexNormals();
+  return g;
+}
+
 /* 弧形石台阶：给开在高处的门用。
    每一级都是一个从圆心出发的扇形柱，内侧埋在墙基里看不见，
    外侧自然形成踏步。 */
@@ -106,8 +157,7 @@ export function buildStoneSteps(opts = {}) {
   for (let i = 0; i < steps; i++) {
     const R = r + (steps - i) * tread;
     const h = rise * (i + 1);
-    const geo = new THREE.CylinderGeometry(R, R, h, 24, 1, false, -arc / 2, arc);
-    geo.translate(0, h / 2, 0);
+    const geo = wedgeGeo(R, h, -arc / 2, arc / 2, 22);
     const m = new THREE.Mesh(geo, mat);
     m.castShadow = m.receiveShadow = true;
     g.add(m);

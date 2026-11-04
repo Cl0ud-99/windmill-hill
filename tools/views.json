@@ -1,4 +1,3 @@
 [
-  { "name": "mill-far", "view": { "pos": [6.0, 13.0, 46.0], "look": [0.0, 12.0, 0.0], "fov": 38 }, "wait": 900 },
-  { "name": "mill-side", "view": { "pos": [16.0, 12.0, 22.0], "look": [0.0, 10.5, 0.0], "fov": 40 }, "wait": 800 }
+  { "name": "small-steps", "view": { "pos": [17.0, 15.0, 15.5], "look": [13.2, 8.2, 3.4], "fov": 42 }, "wait": 900 }
 ]
