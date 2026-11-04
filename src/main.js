@@ -183,10 +183,13 @@ async function init() {
       // 软阈值：噪声低的地方变稀，但不会出现整片秃地
       const p = 0.42 + 0.58 * smoothstep(0.40, 0.58, forest(x, z));
       if (rnd() > p) continue;
-      // 外圈随机砍到原来的 1/4：逐棵独立掷骰子，所以会砍出斑驳的疏密，
-      // 而不是整体均匀变稀。170→240m 渐变过渡，避免出现一圈明显的密度边界
-      const outer = smoothstep(170, 240, r);
-      if (rnd() < outer * 0.75) continue;
+      // 三段密度：内圈满、中圈砍一半、外圈砍到 1/4。
+      // 每一档都是逐棵独立掷骰子，所以砍出来是斑驳的疏密，
+      // 不是整体均匀变稀；档与档之间用 smoothstep 渐变，避免出现同心圆边界
+      const mid = smoothstep(105, 200, r);        // 内圈 → 中圈
+      const far = smoothstep(225, 320, r);        // 中圈 → 外圈
+      const keep = 1 - 0.50 * mid - 0.25 * far;   // 1 → 0.5 → 0.25
+      if (rnd() > keep) continue;
       if (inRiverChannel(x, z, 1.5)) continue;
       if (inPasture(x, z, 2.5)) continue;
       // 村子周围留出场地（半径别开太大，否则风车会孤零零站在空地上）
