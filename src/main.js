@@ -585,6 +585,7 @@ function tick() {
   else if (mode === 'roam') roam.update(dt);
   else if (mode === 'third') third.update(dt);
 
+  if (mill && mill.sails) mill.sails.rotation.z -= dt * 0.14;
   if (smallMill) smallMill.sails.rotation.z -= dt * 0.22;
   if (sky) sky.mesh.position.copy(camera.position);
   if (pollen) pollen.material.uniforms.uCam.value.copy(camera.position);

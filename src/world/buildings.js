@@ -285,7 +285,28 @@ export function buildWindmill() {
   add(root, cyl(0.012, 0.012, 1.5, 4, 1), MAT.woodDark, 0.35, 10.6, 4.95);
   add(root, new THREE.TorusGeometry(0.11, 0.025, 5, 10), MAT.metal, 0.35, 9.85, 4.95);
 
-  return { root };
+  // ---- 风帆 ----
+  // 挑出量必须大于阳台半径 3.78，否则叶片扫下来会切进阳台和门框
+  const sails = new THREE.Group();
+  sails.position.set(0, 11.45, 4.28);
+  const shaft = add(sails, cyl(0.19, 0.19, 1.55, 12, 1), MAT.woodDark, 0, 0, -0.775);
+  shaft.rotation.x = Math.PI / 2;
+  add(sails, new THREE.SphereGeometry(0.24, 14, 10), MAT.woodDark, 0, 0, 0.04);
+
+  const SR = 4.6;
+  for (let i = 0; i < 4; i++) {
+    const blade = new THREE.Group();
+    blade.rotation.z = (i * Math.PI) / 2 + 0.18;
+    add(blade, box(0.16, SR, 0.12), MAT.woodDark, 0, SR / 2, 0);
+    for (let k = 0; k < 8; k++) {
+      add(blade, box(1.02, 0.06, 0.06), MAT.woodDark, 0.44, 0.62 + k * 0.52, 0.015);
+    }
+    add(blade, box(0.92, SR * 0.74, 0.02), MAT.sailCloth, 0.48, SR * 0.56, 0.03);
+    sails.add(blade);
+  }
+  root.add(sails);
+
+  return { root, sails };
 }
 
 
@@ -360,9 +381,11 @@ export function buildSmallWindmill() {
 
   // ---- 风帆 ----
   const sails = new THREE.Group();
-  sails.position.set(0, 4.75, bodyR(4.75) + 0.35);
-  // 轴
-  const shaft = add(sails, cyl(0.13, 0.13, 0.55, 10, 1), MAT.woodDark, 0, 0, -0.28);
+  // 叶轮要挑出墙面 0.8m：叶片扫到最低点时正好从门框前掠过，
+  // 原来只挑出 0.35m，几乎擦着门框和塔身
+  sails.position.set(0, 4.75, bodyR(4.75) + 0.80);
+  // 轴：加长到能从塔身里穿出来
+  const shaft = add(sails, cyl(0.13, 0.13, 1.15, 10, 1), MAT.woodDark, 0, 0, -0.575);
   shaft.rotation.x = Math.PI / 2;
   add(sails, new THREE.SphereGeometry(0.17, 12, 9), MAT.woodDark, 0, 0, 0.03);
 

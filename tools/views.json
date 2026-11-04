@@ -1,6 +1,4 @@
 [
-  { "name": "cnt", "eval": "(() => { const t = window.__demo.trees; const seen = new Set(); for (const m of t.children) { if (!m.isInstancedMesh) continue; const a = m.instanceMatrix.array; for (let i = 0; i < m.count; i++) seen.add(Math.round(a[i*16+12])+','+Math.round(a[i*16+14])); } const pts = [...seen].map(k=>k.split(',').map(Number)); const box=(r0,r1)=>pts.filter(([x,z])=>{const d=Math.hypot(x,z-12);return d>=r0&&d<r1;}).length; return { total: pts.length, inner: box(0,105), mid: box(210,230), outer: box(330,400) }; })()", "wait": 500 },
-  { "name": "top", "view": { "pos": [-20.0, 200.0, 120.0], "look": [-20.0, 0.0, 20.0], "fov": 55 }, "wait": 900 },
-  { "name": "west", "view": { "pos": [90.0, 90.0, 150.0], "look": [-50.0, 6.0, 20.0], "fov": 44 }, "wait": 900 },
-  { "name": "high", "view": { "pos": [0.0, 230.0, 400.0], "look": [0.0, 0.0, 30.0], "fov": 50 }, "wait": 900 }
+  { "name": "mill-far", "view": { "pos": [6.0, 13.0, 46.0], "look": [0.0, 12.0, 0.0], "fov": 38 }, "wait": 900 },
+  { "name": "mill-side", "view": { "pos": [16.0, 12.0, 22.0], "look": [0.0, 10.5, 0.0], "fov": 40 }, "wait": 800 }
 ]
