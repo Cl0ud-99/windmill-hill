@@ -94,6 +94,27 @@ export function doorUnit(w = 1.35, h = 2.45, opts = {}) {
   return g;
 }
 
+/* 弧形石台阶：给开在高处的门用。
+   每一级都是一个从圆心出发的扇形柱，内侧埋在墙基里看不见，
+   外侧自然形成踏步。 */
+export function buildStoneSteps(opts = {}) {
+  const {
+    r = 3.9, top = 1.15, steps = 4, tread = 0.44, arc = 0.46, mat = MAT.stone,
+  } = opts;
+  const g = new THREE.Group();
+  const rise = top / steps;
+  for (let i = 0; i < steps; i++) {
+    const R = r + (steps - i) * tread;
+    const h = rise * (i + 1);
+    const geo = new THREE.CylinderGeometry(R, R, h, 24, 1, false, -arc / 2, arc);
+    geo.translate(0, h / 2, 0);
+    const m = new THREE.Mesh(geo, mat);
+    m.castShadow = m.receiveShadow = true;
+    g.add(m);
+  }
+  return g;
+}
+
 /* ============================================================
    风车塔
    ============================================================ */
@@ -195,6 +216,9 @@ export function buildWindmill() {
   placeOnTower(windowUnit(0.70, 0.95, { shutters: true }), 7.25, -0.62, -0.03);
   placeOnTower(windowUnit(0.62, 0.85), 10.15, 0.30, -0.03);
   placeOnTower(windowUnit(0.58, 0.78), 5.65, 1.15, -0.03);
+
+  // ---- 门前的石阶（基座顶面 1.14m，直接跳上去不现实）----
+  root.add(buildStoneSteps({ r: 3.88, top: 1.14, steps: 4, tread: 0.44, arc: 0.48 }));
 
   // ---- 门 ----
   placeOnTower(doorUnit(1.5, 2.5), 1.05, 0.0, -0.02);
@@ -323,7 +347,10 @@ export function buildSmallWindmill() {
   add(root, new THREE.SphereGeometry(0.13, 12, 9), MAT.metal, 0, H + 2.78, 0);
   add(root, cyl(0.02, 0.035, 0.5, 6, 1), MAT.metal, 0, H + 2.86, 0);
 
-  // 门与窗
+  // 门与窗（门前加三级石阶）
+  root.add(buildStoneSteps({
+    r: bodyR(0.95), top: 0.95, steps: 3, tread: 0.34, arc: 0.55,
+  }));
   const d = doorUnit(0.95, 1.85);
   d.position.set(0, 0.95, bodyR(0.95) - 0.02);
   root.add(d);
